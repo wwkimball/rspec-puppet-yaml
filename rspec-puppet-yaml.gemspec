@@ -6,12 +6,12 @@ require "rspec/puppet/yaml/version"
 Gem::Specification.new do |spec|
   spec.name          = "rspec-puppet-yaml"
   spec.version       = Rspec::Puppet::Yaml::VERSION
-  spec.authors       = ["William Kimball"]
-  spec.email         = ["wwbitbucket@kimballstuff.com"]
+  spec.authors       = ["William W. Kimball, Jr., MBA, MSIS"]
+  spec.email         = ["github-rspec-puppet-yaml@kimballstuff.com"]
 
-  spec.summary       = %q{TODO: Write a short summary, because Rubygems requires one.}
-  spec.description   = %q{TODO: Write a longer description or delete this line.}
-  spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.summary       = %q{Enables YAML to specify rspec tests for Puppet projects}
+  spec.description   = %q{rspec is hard.  YAML is easy.  This extension enables Puppet code authors to define their rspec-puppet tests in YAML instead of Ruby.}
+  spec.homepage      = "https://github.com/wwkimball/rspec-puppet-yaml"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
@@ -33,4 +33,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "bundler", "~> 1.15"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
+
+  spec.add_dependency "rspec-puppet", "~> 2.6.8"
 end
