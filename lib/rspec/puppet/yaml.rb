@@ -34,20 +34,61 @@ module Rspec::Puppet
           load_test_data
         end
 
-        # Initialize any top-level lets
+        # Apply any top-level lets
         apply_lets(@test_data)
 
-        # Create the 'describe' asset container
-        describe_attrs = get_describe(@test_data)
-        describe(
-          Rspec::Puppet::Yaml::Parser.get_named_value('name', describe_attrs),
-          :type => Rspec::Puppet::Yaml::Parser.get_named_value(
-            'type', describe_attrs
-          )
-        ) do
-          apply_lets(describe_attrs)
-          apply_examples(describe_attrs)
-          apply_contexts(describe_attrs)
+        # The top-most entity must be a 'describe', which must have both name
+        # and type.
+        apply_describe(
+          Rspec::Puppet::Yaml::Parser.get_named_hash(
+            'describe',
+            @test_data
+          ),
+          { 'name' => get_eut_name,
+            'type' => get_eut_type }
+        )
+      end
+
+      # Accepts Hashes-of-Hashes -- where each key is the entry's :name and --
+      # Arrays-of-Hashes -- where each Hash has a :name element -- returning
+      # both forms as an Array-of-Hashes with a guaranteed 'name' element.  Any
+      # entry without a :name generates an exception.
+      #
+      # @summary Condenses a collection of named Hashes into an Array-of-Hashes.
+      # @param [Enum[String,Symbol]] key The name of the collection to copy.
+      # @param [Optional[Hash]] data The Hash to copy `key` from.
+      # @return [Array[Hash]] Array-of-Hashes, each with a 'name' attribute.
+      # @raise [ArgumentError] when an element has no name or is not a Hash.
+      def self.get_array_of_named_hashes(key, data = {})
+        coerced_hashes = []
+        hashes = Rspec::Puppet::Yaml::Parser.get_named_hash(key, data, {})
+        return hashes if hashes.empty?  # Do nothing when there is nothing to do
+
+        if hashes.kind_of?(Array)
+          hashes.each { |hash|
+            if hash.is_a?(Hash)
+              hash_name = Rspec::Puppet::Yaml::Parser.get_named_value('name', hash)
+              if hash_name.nil?
+                raise ArgumentError, "At least one child of #{key} has no name."
+              else
+                coerced_hashes << hash.merge({'name' => hash_name})
+              end
+            else
+              raise ArgumentError, "At least one child of #{key} is not a Hash value."
+            end
+          }
+        elsif hashes.is_a?(Hash)
+          hashes.each { |hash_name, hash|
+            # Permit name overrides, but force the String key type
+            alt_name = Rspec::Puppet::Yaml::Parser.get_named_value('name', hash)
+            if alt_name.nil? || alt_name.empty?
+              coerced_hashes << hash.merge({'name' => hash_name})
+            else
+              coerced_hashes << hash.delete(:name).merge({'name' => alt_name})
+            end
+          }
+        else
+          raise ArgumentError, "#{key} is for neither an Array nor a Hash value."
         end
       end
 
@@ -170,48 +211,56 @@ module Rspec::Puppet
           end
         end
 
-        # Gets the required top-level 'describe' entity descriptor from the
-        # sample data.
-        #
-        # @private
-        # @param data [Hash] The data to scan for a 'describe' element.
-        # @return [Hash] The source data, unchanged
-        # @example As YAML
-        #  ---
-        #  describe:
-        #    :type: :class   # or type: class (both must be .to_sym)
-        #    :name: my_class # or name: my_class
-        def NONONOget_describe(data = {})
-          default_name = get_eut_name
-          default_type = get_eut_type
-          default_desc = {
-            :name = default_name,
-            :type = default_type
-          }
-          desc = Rspec::Puppet::Yaml::Parser.get_named_hash(
-            'describe',
-            data,
-            default_desc
+        def apply_describe(apply_attrs = {}, default_attrs = {})
+          full_attrs = default_attrs.merge(apply_attrs)
+          desc_name  = Rspec::Puppet::Yaml::Parser.get_named_value(
+            'name', full_attrs
           )
-
-          # A descriptor is required
-          if desc.empty?
-            desc = default_desc
-          else
-            # Ensure name and type are set
-            if !desc.has_key?('name') and !desc.has_key?(:name)
-              desc['name'] = default_name
+          desc_type  = Rspec::Puppet::Yaml::Parser.get_named_value(
+            'type', full_attrs
+          )
+          if desc_type.nil?
+            # Probably an inner describe
+            describe(desc_name) do
+              apply_content(full_attrs)
             end
-            if !desc.has_key?('type') and !desc.has_key?(:type)
-              desc['type'] = default_type
+          else
+            # Probably the outer-most describe
+            describe(desc_name, :type => desc_type) do
+              apply_content(full_attrs)
             end
           end
+        end
 
-          desc
+        def apply_context(apply_attrs = {}, default_attrs = {})
+          full_attrs    = default_attrs.merge(apply_attrs)
+          context_name  = Rspec::Puppet::Yaml::Parser.get_named_value(
+            'name', full_attrs
+          )
+          context(context_name) do
+            apply_content(full_attrs)
+          end
+        end
+
+        def apply_describes(data = {})
+          Rspec::Puppet::Yaml::Parser.get_array_of_named_hashes(
+            'describe',
+            data
+          ).each { |container| apply_describe(container) }
         end
 
         def apply_contexts(data = {})
-          Rspec::Puppet::Yaml::Parser.get_named_hash('context', data)
+          Rspec::Puppet::Yaml::Parser.get_array_of_named_hashes(
+            'context',
+            data
+          ).each { |container| apply_context(container) }
+        end
+
+        def apply_content(apply_data = {})
+          apply_lets(apply_data)
+          apply_examples(apply_data)
+          apply_describes(apply_data)
+          apply_contexts(apply_data)
         end
 
         # Sets all let variables.
