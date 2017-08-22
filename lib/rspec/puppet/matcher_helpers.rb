@@ -7,12 +7,12 @@ module Rspec::Puppet
     # Attempts to create and return an appropriate Rspec::Puppet::*Matcher for a
     # known matching method and its arguments.
     #
-    # @param [Enum[String,Symbol]] method A recognizable Rspec::Puppet
+    # @param method [Enum[String,Symbol]] A recognizable Rspec::Puppet
     #  matcher; one of: contain_*, create_*, have_*_count, compile, run, or
     #  be_valid_type.
-    # @param [Enum[Hash,Array[Any]] args Arguments to pass to the
+    # @param args [Enum[Hash,Array[Any]] Arguments to pass to the
     #  matcher during construction.
-    # @return [Rspec::Puppet::*Matcher] Whicher Rspec::Puppet matcher that knows
+    # @return [Object] Whicher Rspec::Puppet matcher that knows
     #  how to handle `method`.
     # @raise [NameError] when `method` is unrecognizable.
     def self.get_matcher_for(method, args)
@@ -51,36 +51,47 @@ module Rspec::Puppet
       matcher
     end
 
-    def self.get_contain_matcher(method, type, target, tests)
-      target_tests = Rspec::Puppet::Yaml::DataHelpers.get_named_value(
-        type,
-        tests
-      )
-
-      matcher
-    end
+    #def self.get_loaded_contain_matcher(method, type, target, tests)
+    #  target_tests = Rspec::Puppet::Yaml::DataHelpers.get_named_value(
+    #    type,
+    #    tests
+    #  )
+    #
+    #  matcher
+    #end
 
     def self.get_contain_matcher(method, args)
-      matcher = RSpec::Puppet::ManifestMatchers::CreateGeneric.new(
-        method,
-        method.to_s,
-        nil
-      )
-
-      if args.type_of?(Array)
-        args.each { |arg| matcher.send(arg.to_sym) }
-      elsif args.is_a?(Hash)
-        args.each { |k,v|
-          # Special Case:  *_content tests require Regular Expressions.
+      # CreateGeneric::initialize requires args to contain:
+      # 0:  /^(create|contain)_#{resource_type}$/ (which is #{method})
+      # 1:  #{resource_name}
+      # *:  All other elements are stored but ignored
+      #
+      # args must be pre-processed because *_content tests accept only Regular
+      # Expressions as input, not just String forms of them, but actual Ruby
+      # Regexp instances.  Since user-generated input may be consumed here,
+      # assume they will be passed as Strings that require conversion.
+      if args && !args.empty? && args.is_a?(Hash)
+        args.each do |k, v|
           if k =~ /^with(out)?_content$/
+            if v.kind_of?(Array)
+              v
+        end
+      else
+        # Args is not a discernible Hash
+        matcher = RSpec::Puppet::ManifestMatchers::CreateGeneric.new(
+          method,
+          args,
+          nil
+        )
 
-          matcher.send(k.to_sym, v)
-        }
-      elsif args.is_a?(String)
-        matcher.send(args)
-      elsif !args.nil?
-        # The user specified _something_ but it isn't a method call.
-        raise ArgumentError, "Unknown argument for Contain matcher:  #{args}."
+        if args.type_of?(Array)
+          args.each { |arg| matcher.send(arg.to_sym) }
+        elsif args.is_a?(String)
+          matcher.send(args)
+        elsif !args.nil?
+          # Anything left is assumed to be an 'ensure' test.
+          matcher.send(:with_ensure, args)
+        end
       end
 
       matcher
