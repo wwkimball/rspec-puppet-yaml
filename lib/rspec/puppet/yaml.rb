@@ -120,7 +120,8 @@ module Rspec::Puppet
         def apply_context(apply_attrs = {}, default_attrs = {})
           full_attrs    = default_attrs.merge(apply_attrs)
           context_name  = Rspec::Puppet::Yaml::DataHelpers.get_named_value(
-            'name', full_attrs
+            'name',
+            full_attrs
           )
           context(context_name) do
             apply_content(full_attrs)
