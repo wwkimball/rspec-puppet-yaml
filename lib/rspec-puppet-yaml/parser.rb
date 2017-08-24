@@ -1,3 +1,5 @@
+require 'rspec-puppet'
+
 module RSpec::Puppet
   # Adds YAML processing capabilities to RSpec::Puppet for the purpose of
   # defining rspec examples.
@@ -9,6 +11,8 @@ module RSpec::Puppet
     # @attr_reader [String] rspec_yaml Path to the source YAML data file.
     # @attr_reader [Hash] Contents of `rspec_yaml`.
     class Parser
+      include RSpec::Puppet::Support
+
       attr_reader :rspec_yaml, :test_data
 
       def initialize(rspec_yaml)
@@ -85,9 +89,7 @@ module RSpec::Puppet
           if !desc_type.nil?
             desc_type.to_sym
           else
-            RSpec::Puppet::Support.guess_type_from_path(
-              caller_locations.first.path
-            )
+            guess_type_from_path(caller_locations.first.path)
           end
         end
 
@@ -103,11 +105,12 @@ module RSpec::Puppet
           )
           if desc_type.nil?
             # Probably an inner describe
-            describe(desc_name) { apply_content(full_attrs) }
+            RSpec.describe(desc_name) { apply_content(full_attrs) }
           else
             # Probably the outer-most describe
-            describe(desc_name, :type => desc_type) do
-              apply_content(full_attrs)
+            outer_self = self
+            RSpec.describe(desc_name, :type => desc_type) do
+              outer_self.apply_content(full_attrs)
             end
           end
         end

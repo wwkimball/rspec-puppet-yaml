@@ -63,7 +63,7 @@ module RSpec::Puppet
         hash_value = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
           key, data, default
         )
-        if !hash_value.is_a(Hash)
+        if !hash_value.is_a?(Hash)
           raise NameError, "The value of #{key} is not a Hash."
         end
         hash_value
