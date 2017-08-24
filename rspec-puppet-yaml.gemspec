@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["William W. Kimball, Jr., MBA, MSIS"]
   spec.email         = ["github-rspec-puppet-yaml@kimballstuff.com"]
 
-  spec.summary       = %q{Enables YAML to specify rspec tests for Puppet projects}
-  spec.description   = %q{rspec is hard.  YAML is easy.  This extension enables Puppet code authors to define their rspec-puppet tests in YAML instead of Ruby.}
+  spec.summary       = %q{Enables the use of YAML to specify rspec tests for Puppet projects}
+  spec.description   = %q{rspec is effective but quite hard to learn for Puppet authors who don't wish to take up Ruby.  YAML is comparatively easy to pick up and most Puppet authors are necessarily exposed to it.  This extension enables Puppet code authors to define their rspec-puppet tests in YAML instead of Ruby.}
   spec.homepage      = "https://github.com/wwkimball/rspec-puppet-yaml"
   spec.license       = "MIT"
 
@@ -34,5 +34,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
 
-  spec.add_dependency "rspec-puppet", "~> 2.6.8"
+  spec.add_dependency "rspec-puppet", "~> 2.6"
 end
