@@ -1,4 +1,4 @@
-# Rspec::Puppet::Yaml
+# RSpec::Puppet::Yaml
 
 Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/rspec/puppet/yaml`. To experiment with that code, run `bin/console` for an interactive prompt.
 
@@ -40,4 +40,4 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 ## Code of Conduct
 
-Everyone interacting in the Rspec::Puppet::Yaml project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/rspec-puppet-yaml/blob/master/CODE_OF_CONDUCT.md).
+Everyone interacting in the RSpec::Puppet::Yaml project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/rspec-puppet-yaml/blob/master/CODE_OF_CONDUCT.md).

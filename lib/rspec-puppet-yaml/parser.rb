@@ -1,8 +1,5 @@
-require 'rspec-puppet/yaml/version'
-require 'yaml'
-
-module Rspec::Puppet
-  # Adds YAML processing capabilities to Rspec::Puppet for the purpose of
+module RSpec::Puppet
+  # Adds YAML processing capabilities to RSpec::Puppet for the purpose of
   # defining rspec examples.
   module Yaml
     # Converts YAML-defined rspec tests into examples.
@@ -30,7 +27,7 @@ module Rspec::Puppet
         # The top-most entity must be a 'describe', which must have both name
         # and type.
         apply_describe(
-          Rspec::Puppet::Yaml::DataHelpers.get_named_hash(
+          RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
             'describe',
             @test_data
           ),
@@ -96,19 +93,17 @@ module Rspec::Puppet
 
         def apply_describe(apply_attrs = {}, default_attrs = {})
           full_attrs = default_attrs.merge(apply_attrs)
-          desc_name  = Rspec::Puppet::Yaml::DataHelpers.get_named_value(
+          desc_name  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
             'name',
             full_attrs
           )
-          desc_type  = Rspec::Puppet::Yaml::DataHelpers.get_named_value(
+          desc_type  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
             'type',
             full_attrs
           )
           if desc_type.nil?
             # Probably an inner describe
-            describe(desc_name) do
-              apply_content(full_attrs)
-            end
+            describe(desc_name) { apply_content(full_attrs) }
           else
             # Probably the outer-most describe
             describe(desc_name, :type => desc_type) do
@@ -119,31 +114,39 @@ module Rspec::Puppet
 
         def apply_context(apply_attrs = {}, default_attrs = {})
           full_attrs    = default_attrs.merge(apply_attrs)
-          context_name  = Rspec::Puppet::Yaml::DataHelpers.get_named_value(
+          context_name  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
             'name',
             full_attrs
           )
-          context(context_name) do
-            apply_content(full_attrs)
-          end
+          context(context_name) { apply_content(full_attrs) }
         end
 
         def apply_describes(data = {})
-          Rspec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
+          RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
             'describe',
             data
           ).each { |container| apply_describe(container) }
         end
 
         def apply_contexts(data = {})
-          Rspec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
+          RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
             'context',
             data
           ).each { |container| apply_context(container) }
         end
 
-        def apply_examples(data = {})
-          #  it { is_expected.to matcher }
+        def apply_tests(data = {})
+          RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
+            'tests',
+            data,
+            {}
+          ).each do |method, args|
+            matcher = RSpec::Puppet::MatcherHelpers.get_matcher_for(
+              method,
+              args
+            )
+            it { is_expected.to matcher }
+          end
         end
 
         # Order:
@@ -160,14 +163,17 @@ module Rspec::Puppet
           apply_lets(apply_data)
           #apply_before(apply_data)
           #apply_after(apply_data)
-          apply_examples(apply_data)
+          apply_tests(apply_data)
           apply_describes(apply_data)
           apply_contexts(apply_data)
           #apply_variants(apply_data)
         end
 
         def apply_subject(data = {})
-          subject = Rspec::Puppet::Yaml::DataHelpers.get_named_value('subject', data)
+          subject = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
+            'subject',
+            data
+          )
           if !subject.nil?
             subject { subject }
           end
@@ -191,7 +197,7 @@ module Rspec::Puppet
         #          major: 7
         #          minor: 1
         def apply_lets(data = {})
-          Rspec::Puppet::Yaml::DataHelpers.get_named_hash(
+          RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
             'let',
             data
           ).each { |k,v| let(k.to_sym) { v } }

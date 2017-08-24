@@ -1,13 +1,13 @@
-module Rspec::Puppet
+module RSpec::Puppet
   # A collection of static methods that simplify creating and building rodjek's
-  # Rspec::Puppet::*Matchers.
+  # RSpec::Puppet::*Matchers.
   #
   # @see https://github.com/rodjek/rspec-puppet
   class MatcherHelpers
-    # Attempts to create and return an appropriate Rspec::Puppet::*Matcher for a
+    # Attempts to create and return an appropriate RSpec::Puppet::*Matcher for a
     # known matching method and its arguments.
     #
-    # @param method [Variant[String,Symbol]] A recognizable Rspec::Puppet
+    # @param method [Variant[String,Symbol]] A recognizable RSpec::Puppet
     #  matcher; one of: contain_*, create_*, have_*_count, compile, run, or
     #  be_valid_type (where * is a known resource type).
     # @param args [Array[Any]] Arguments to pass to the matcher during
@@ -16,7 +16,7 @@ module Rspec::Puppet
     #  tests to apply to the matcher, expressed as `:method_call => value(s)`
     #  tuples.  Use `nil` as the value for method_calls that don't accept
     #  arguments.
-    # @return [Object] An Rspec::Puppet matcher that knows how to handle
+    # @return [Object] An RSpec::Puppet matcher that knows how to handle
     #  `method` and is loaded with `tests`.
     # @raise [NameError] when `method` is unrecognizable.
     def self.get_matcher_for(method, args, tests = {})
@@ -24,31 +24,31 @@ module Rspec::Puppet
       method_sym = method.to_sym
 
       if method_str =~ /^(contain|create)_.+$/
-        matcher = Rspec::Puppet::MatcherHelpers.get_contain_matcher(
+        matcher = RSpec::Puppet::MatcherHelpers.get_contain_matcher(
           method_sym,
           args,
           tests
         )
       elsif method_str =~ /^have_.+_resource_count$/
-        matcher = Rspec::Puppet::MatcherHelpers.get_count_matcher(
+        matcher = RSpec::Puppet::MatcherHelpers.get_count_matcher(
           method_sym,
           args,
           tests
         )
       elsif 'compile' == method_str
-        matcher = Rspec::Puppet::MatcherHelpers.get_compile_matcher(
+        matcher = RSpec::Puppet::MatcherHelpers.get_compile_matcher(
           method_sym,
           args,
           tests
         )
       elsif 'run' == method_str
-        matcher = Rspec::Puppet::MatcherHelpers.get_function_matcher(
+        matcher = RSpec::Puppet::MatcherHelpers.get_function_matcher(
           method_sym,
           args,
           tests
         )
       elsif 'be_valid_type' == method_str
-        matcher = Rspec::Puppet::MatcherHelpers.get_type_matcher(
+        matcher = RSpec::Puppet::MatcherHelpers.get_type_matcher(
           method_sym,
           args,
           tests
@@ -75,7 +75,7 @@ module Rspec::Puppet
     #
     # @example package { 'my-package': ensure => 'latest', provider => 'apt' }
     #  # Using the all-in-one `with` test
-    #  matcher = Rspec::Puppet::MatcherHelpers.get_contain_matcher(
+    #  matcher = RSpec::Puppet::MatcherHelpers.get_contain_matcher(
     #    :contain_package,
     #    [ 'my-package' ],
     #    { :with => {
@@ -85,7 +85,7 @@ module Rspec::Puppet
     #  )
     #
     #  # Using individual with_* tests
-    #  matcher = Rspec::Puppet::MatcherHelpers.get_contain_matcher(
+    #  matcher = RSpec::Puppet::MatcherHelpers.get_contain_matcher(
     #    :contain_package,
     #    [ 'my-package' ],
     #    { :with_ensure   => 'latest',
@@ -140,13 +140,13 @@ module Rspec::Puppet
     #  method_calls that don't accept arguments.
     #
     # @example 1 package expected (count as an Array element)
-    #  matcher = Rspec::Puppet::MatcherHelpers.get_count_matcher(
+    #  matcher = RSpec::Puppet::MatcherHelpers.get_count_matcher(
     #    :have_package_resource_count,
     #    [ 1 ]
     #  )
     #
     # @example 12 files expected (count as a bare Integer)
-    #  matcher = Rspec::Puppet::MatcherHelpers.get_count_matcher(
+    #  matcher = RSpec::Puppet::MatcherHelpers.get_count_matcher(
     #    :have_file_resource_count,
     #    12
     #  )
@@ -171,7 +171,7 @@ module Rspec::Puppet
       end
 
       RSpec::Puppet::ManifestMatchers::CountGeneric.new(
-        nil
+        nil,
         count,
         method
       )
@@ -189,14 +189,14 @@ module Rspec::Puppet
     #  arguments.
     #
     # @example The class compiles with all dependencies, spelled out
-    #  matcher = Rspec::Puppet::MatcherHelpers.get_compile_matcher(
+    #  matcher = RSpec::Puppet::MatcherHelpers.get_compile_matcher(
     #    :compile,
     #    nil,
     #    { :with_all_deps => nil }
     #  )
     #
     # @example The class compiles with all dependencies, simpler
-    #  matcher = Rspec::Puppet::MatcherHelpers.get_count_matcher(
+    #  matcher = RSpec::Puppet::MatcherHelpers.get_count_matcher(
     #    :have_file_resource_count,
     #    nil,
     #    true
@@ -239,7 +239,7 @@ module Rspec::Puppet
     #  passed as-is to the function under test as its parameters.
     #
     # @example Test a function that strips known extensions off file-names
-    #  matcher = Rspec::Puppet::MatcherHelpers.get_function_matcher(
+    #  matcher = RSpec::Puppet::MatcherHelpers.get_function_matcher(
     #    :run,
     #    nil,
     #    [ '/some/arbitrary/path.ext', 'ext' ]
@@ -282,14 +282,14 @@ module Rspec::Puppet
     #  arguments.
     #
     # @example With a particular provider (simple)
-    #  matcher = Rspec::Puppet::MatcherHelpers.get_type_matcher(
+    #  matcher = RSpec::Puppet::MatcherHelpers.get_type_matcher(
     #    :be_valid_type,
     #    nil,
     #    :apt
     #  )
     #
     # @example With a particular provider (spelled out)
-    #  matcher = Rspec::Puppet::MatcherHelpers.get_type_matcher(
+    #  matcher = RSpec::Puppet::MatcherHelpers.get_type_matcher(
     #    :be_valid_type,
     #    nil,
     #    { :with_provider => :apt }

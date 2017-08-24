@@ -1,4 +1,4 @@
-module Rspec::Puppet
+module RSpec::Puppet
   module Yaml
     # A collection of static methods that help coerce data into simpler (to
     # digest) forms.  This is necessitated primarily because YAML files can be
@@ -16,13 +16,13 @@ module Rspec::Puppet
       # @raise [ArgumentError] when an element has no name or is not a Hash.
       def self.get_array_of_named_hashes(key, data = {})
         coerced_hashes = []
-        hashes = Rspec::Puppet::Yaml::DataHelpers.get_named_hash(key, data, {})
+        hashes = RSpec::Puppet::Yaml::DataHelpers.get_named_hash(key, data, {})
         return hashes if hashes.empty?  # Do nothing when there is nothing to do
 
         if hashes.kind_of?(Array)
           hashes.each { |hash|
             if hash.is_a?(Hash)
-              hash_name = Rspec::Puppet::Yaml::DataHelpers.get_named_value('name', hash)
+              hash_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value('name', hash)
               if hash_name.nil?
                 raise ArgumentError, "At least one child of #{key} has no name."
               else
@@ -35,7 +35,7 @@ module Rspec::Puppet
         elsif hashes.is_a?(Hash)
           hashes.each { |hash_name, hash|
             # Permit name overrides, but force the String key type
-            alt_name = Rspec::Puppet::Yaml::DataHelpers.get_named_value('name', hash)
+            alt_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value('name', hash)
             if alt_name.nil? || alt_name.empty?
               coerced_hashes << hash.merge({'name' => hash_name})
             else
@@ -60,7 +60,7 @@ module Rspec::Puppet
       # @return [Hash] The selected child Hash if it exists, else `default`.
       # @raise NameError when the value for `key` is not a Hash.
       def self.get_named_hash(key, data = {}, default = {})
-        hash_value = Rspec::Puppet::Yaml::DataHelpers.get_named_value(
+        hash_value = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
           key, data, default
         )
         if !hash_value.is_a(Hash)

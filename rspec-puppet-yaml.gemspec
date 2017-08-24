@@ -1,11 +1,10 @@
 # coding: utf-8
 lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "rspec/puppet/yaml/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "rspec-puppet-yaml"
-  spec.version       = Rspec::Puppet::Yaml::VERSION
+  spec.version       = "0.1.0"
   spec.authors       = ["William W. Kimball, Jr., MBA, MSIS"]
   spec.email         = ["github-rspec-puppet-yaml@kimballstuff.com"]
 
@@ -32,7 +31,13 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "bundler", "~> 1.15"
   spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency "rspec", "~> 3.0"
+  spec.add_development_dependency "parallel_tests", "~> 1"
+  spec.add_development_dependency "puppetlabs_spec_helper", "~> 2.3"
+  spec.add_development_dependency "puppet-strings", "~> 1"
+  spec.add_development_dependency "metadata-json-lint", "~> 2"
+  spec.add_development_dependency "rspec-puppet-facts", "~> 1.8"
 
+  spec.add_dependency "rspec", "~> 3.0"
+  spec.add_dependency "puppet", "~> 5"
   spec.add_dependency "rspec-puppet", "~> 2.6"
 end
