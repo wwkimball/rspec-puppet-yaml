@@ -97,7 +97,7 @@ module RSpec::Puppet
       # the resource under test.
       if args.nil? || !args
         raise ArgumentError, "Contain/Create matchers require that the first argument be the title of the resource under test."
-      elsif !args.kind_of(Array)
+      elsif !args.kind_of?(Array)
         args = [ args.to_s ]
       end
 
@@ -107,11 +107,11 @@ module RSpec::Puppet
       )
 
       # Try to be lenient on the Hash requirement for tests
-      if tests.type_of?(Array)
+      if tests.kind_of?(Array)
         tests.each { |test| matcher.send(test.to_sym) }
       elsif tests.is_a?(Hash)
         tests.each do |k,v|
-          if v.nil?
+          if v.nil? || 'nil' == v.to_s
             matcher.send(k.to_sym)
           else
             matcher.send(k.to_sym, v)
@@ -160,7 +160,7 @@ module RSpec::Puppet
       # will steer clear of this qwirkiness by simply passing nil as the first
       # and ensuring that args can be cast as an Integer.
       begin
-        if args.type_of(Array)
+        if args.kind_of?(Array)
           # Assume the first element of an args array is the intended count
           count = args[0].to_i
         else
@@ -204,11 +204,11 @@ module RSpec::Puppet
     def self.get_compile_matcher(method, args = [], tests = {})
       matcher = RSpec::Puppet::ManifestMatchers::Compile.new
 
-      if tests.type_of?(Array)
+      if tests.kind_of?(Array)
         tests.each { |test| matcher.send(test.to_sym) }
       elsif tests.is_a?(Hash)
         tests.each do |k,v|
-          if v.nil?
+          if v.nil? || 'nil' == v.to_s
             matcher.send(k.to_sym)
           else
             matcher.send(k.to_sym, v)
@@ -249,7 +249,7 @@ module RSpec::Puppet
 
       if tests.is_a?(Hash)
         tests.each do |k,v|
-          if v.nil?
+          if v.nil? || 'nil' == v.to_s
             matcher.send(k.to_sym)
           else
             matcher.send(k.to_sym, v)
@@ -260,7 +260,7 @@ module RSpec::Puppet
       elsif !tests.nil?
         # Anything left is assumed to be a 'with_params' test, which expects an
         # Array.
-        if tests.type_of(Array)
+        if tests.kind_of?(Array)
           matcher.send(:with_params, tests)
         else
           matcher.send(:with_params, [tests])
@@ -300,11 +300,11 @@ module RSpec::Puppet
         args
       )
 
-      if tests.type_of?(Array)
+      if tests.kind_of?(Array)
         tests.each { |test| matcher.send(test.to_sym) }
       elsif tests.is_a?(Hash)
         tests.each do |k,v|
-          if v.nil?
+          if v.nil? || 'nil' == v.to_s
             matcher.send(k.to_sym)
           else
             matcher.send(k.to_sym, v)

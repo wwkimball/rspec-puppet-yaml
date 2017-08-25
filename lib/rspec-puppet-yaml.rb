@@ -15,8 +15,7 @@ module RSpec::Puppet
   def self.parse_yaml(rspec_yaml_file)
     $stdout.puts("INFO:  #{__FILE__} will now parse #{rspec_yaml_file}.")
     $stdout.flush
-    parser = RSpec::Puppet::Yaml::Parser.new(rspec_yaml_file)
-    parser.parse
+    RSpec::Puppet::Yaml.parse_yaml(rspec_yaml_file)
   end
 
   # Identifies a YAML data file based on the name of a *_spec.rb rspec file and

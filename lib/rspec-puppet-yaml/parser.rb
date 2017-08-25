@@ -1,241 +1,250 @@
-require 'rspec-puppet'
+require 'pp'
 
 module RSpec::Puppet
   # Adds YAML processing capabilities to RSpec::Puppet for the purpose of
   # defining rspec examples.
   module Yaml
-    # Converts YAML-defined rspec tests into examples.
-    #
-    # @author William W. Kimball, Jr., MBA, MSIS
-    # @since 0.1.0
-    # @attr_reader [String] rspec_yaml Path to the source YAML data file.
-    # @attr_reader [Hash] Contents of `rspec_yaml`.
-    class Parser
-      include RSpec::Puppet::Support
+    extend RSpec::Puppet::Support
+    #extend RSpec::Core::ExampleGroup
+    #extend RSpec::Core
+    #extend RSpec
+    include RSpec
 
-      attr_reader :rspec_yaml, :test_data
+    # Converts the supplied YAML data into rspec examples.
+    def self.parse_yaml(yaml_file)
+      test_data = RSpec::Puppet::Yaml.load_test_data(yaml_file)
+      $stdout.puts("parse_yaml got data:")
+      pp test_data
 
-      def initialize(rspec_yaml)
-        @rspec_yaml = rspec_yaml
-      end
-
-      # Converts the supplied YAML data into rspec examples.
-      def parse
-        if @test_data.nil?
-          load_test_data
-        end
-
-        # Apply any top-level lets
-        apply_lets(@test_data)
-
-        # The top-most entity must be a 'describe', which must have both name
-        # and type.
-        apply_describe(
-          RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
-            'describe',
-            @test_data
-          ),
-          { 'name' => get_eut_name,
-            'type' => get_eut_type }
+      # Apply any top-level lets
+      RSpec::Puppet::Yaml.apply_lets(
+        RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
+          'let',
+          test_data
         )
+      )
+
+      # The top-most entity must be a 'describe', which must have both name
+      # and type.
+      rspec_file = caller_locations.select {|e| e.path =~ /.+_spec.rb$/}.first.path
+      RSpec::Puppet::Yaml.apply_describe(
+        RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
+          'describe',
+          test_data
+        ),
+        { 'name' => RSpec::Puppet::Yaml.get_eut_name(yaml_file, rspec_file),
+          'type' => RSpec::Puppet::Yaml.guess_type_from_path(rspec_file)
+        }
+      )
+    end
+
+    # Identify the name of the entity under test.
+    #
+    # @private
+    # @param [String] rspec_yaml_file_name YAML file name that describes tests.
+    # @return [String] Name of the entity under test.
+    def self.get_eut_name(rspec_yaml_file_name, rspec_file_name)
+      base_yaml   = File.basename(rspec_yaml_file_name)
+      base_caller = File.basename(rspec_file_name)
+
+      if base_yaml =~ /^(.+)(_spec)?\.ya?ml$/
+        $1.to_s
+      elsif base_caller =~ /^(.+)_spec\.rb$/
+        $1.to_s
+      else
+        'unknown'
+      end
+    end
+
+    def self.apply_describe(apply_attrs = {}, default_attrs = {})
+      full_attrs = default_attrs.merge(apply_attrs)
+      desc_name  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
+        'name',
+        full_attrs
+      )
+      desc_type  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
+        'type',
+        full_attrs
+      )
+      if desc_type.nil?
+        # Probably an inner describe
+        describe(desc_name) { RSpec::Puppet::Yaml.apply_content(full_attrs) }
+      else
+        # Probably the outer-most describe
+        describe(desc_name, :type => desc_type) do
+          $stdout.puts("describe #{desc_name}:#{desc_type.to_s} {")
+          RSpec::Puppet::Yaml.apply_content(full_attrs)
+          $stdout.puts("} ## describe #{desc_name}:#{desc_type.to_s}")
+        end
+      end
+    end
+
+    def self.apply_context(apply_attrs = {}, default_attrs = {})
+      full_attrs   = default_attrs.merge(apply_attrs)
+      context_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
+        'name',
+        full_attrs
+      )
+      context(context_name) do
+        $stdout.puts("context #{context_name} {")
+        RSpec::Puppet::Yaml.apply_content(full_attrs)
+        $stdout.puts("} ## context #{context_name}")
+      end
+    end
+
+    def self.apply_describes(describes = {})
+      describes.each { |container| RSpec::Puppet::Yaml.apply_describe(container) }
+    end
+
+    def self.apply_contexts(contexts = {})
+      contexts.each { |container| RSpec::Puppet::Yaml.apply_context(container) }
+    end
+
+    def self.apply_tests(tests = {})
+      $stdout.puts("apply_tests got data:")
+      pp tests
+      tests.each do |method, props|
+        # props must be split into args and tests based on method
+        case method.to_s
+        when 'compile'
+          args = []
+          calls = props
+        when /^have_.+_resource_count$/
+          args = props
+          calls = {}
+        end
+
+        $stdout.puts("...split props into:")
+        $stdout.puts("......args:")
+        pp args
+        $stdout.puts("......calls:")
+        pp calls
+
+        $stdout.puts("it #{method} {")
+        matcher = RSpec::Puppet::MatcherHelpers.get_matcher_for(
+          method,
+          args,
+          calls
+        )
+        $stdout.puts("Got matcher:")
+        pp matcher
+        it { is_expected.to matcher }
+        $stdout.puts("} ## it #{method}")
+      end
+    end
+
+    # Order:
+    #   1. subject
+    #   2. let
+    #   3. before (missing)
+    #   4. after (missing)
+    #   5. it examples
+    #   6. describe
+    #   7. context
+    #   8. variants (missing)
+    def self.apply_content(apply_data = {})
+      $stdout.puts("...applying data:")
+      pp apply_data
+
+      RSpec::Puppet::Yaml.apply_subject(
+        RSpec::Puppet::Yaml::DataHelpers.get_named_value(
+          'subject',
+          apply_data
+        )
+      )
+      RSpec::Puppet::Yaml.apply_lets(
+        RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
+          'let',
+          apply_data
+        )
+      )
+      #RSpec::Puppet::Yaml.apply_before(apply_data)
+      #RSpec::Puppet::Yaml.apply_after(apply_data)
+      RSpec::Puppet::Yaml.apply_tests(
+        RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
+          'tests',
+          apply_data
+        )
+      )
+      RSpec::Puppet::Yaml.apply_describes(
+        RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
+          'describe',
+          apply_data
+        )
+      )
+      RSpec::Puppet::Yaml.apply_contexts(
+        RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
+          'context',
+          apply_data
+        )
+      )
+      #RSpec::Puppet::Yaml.apply_variants(apply_data)
+    end
+
+    def self.apply_subject(subject)
+      if !subject.nil?
+        subject { subject }
+      end
+    end
+
+    # Sets all let variables.
+    #
+    # @private
+    # @param data [Hash] The data to scan for let variables
+    # @example As YAML
+    #  ---
+    #  let:
+    #    class: my_class
+    #    node: my-node.my-domain.tld
+    #    facts:
+    #      kernel: Linux
+    #      os:
+    #        family: RedHat
+    #        name: CentOS
+    #        release:
+    #          major: 7
+    #          minor: 1
+    def self.apply_lets(lets = {})
+      $stdout.puts("apply_lets got data:")
+      pp lets
+      lets.each { |k,v|
+        $stdout.puts("let #{k} fucks #{v} in the ass {")
+        let(k.to_sym) { v }
+        $stdout.puts("} ## let #{k} fucks #{v} in the ass")
+      }
+    end
+
+    # Attempts to load the YAML test data.
+    #
+    # @private
+    # @raise IOError when the source file is not valid YAML or does not
+    #  contain a Hash.
+    def self.load_test_data(yaml_file)
+      # The test data file must exist
+      if !File.exists?(yaml_file)
+        raise IOError, "#{yaml_file} does not exit."
       end
 
-      private
-        # Identify the name of the entity under test.
-        #
-        # @private
-        # @param [Hash] describe A Hash of describe {} attributes.
-        # @return [String] Name of the entity under test.
-        def get_eut_name(describe = {})
-          base_yaml   = File.basename(@rspec_yaml)
-          base_caller = File.basename(caller_locations.first.path)
-          desc_name   =
-            if !describe.respond_to?(:has_key?)
-              nil
-            elsif describe.has_key?(:name)
-              describe[:name]
-            elsif describe.has_key?('name')
-              describe['name']
-            else
-              nil
-            end
+      begin
+        yaml_data = YAML.load_file(yaml_file)
+      rescue Psych::SyntaxError => ex
+        raise IOError, "#{yaml_file} contains a YAML syntax error."
+      rescue ArgumentError => ex
+        raise IOError, "#{yaml_file} contains missing or undefined entities."
+      rescue
+        raise IOError, "#{yaml_file} could not be read or is not YAML."
+      end
 
-          if !desc_name.nil?
-            desc_name.to_s
-          elsif base_yaml =~ /^(.+)(_spec)?\.ya?ml$/
-            $1.to_s
-          elsif base_caller =~ /^(.+)_spec\.rb$/
-            $1.to_s
-          else
-            'unknown'
-          end
-        end
+      # Must be a populated Hash
+      if yaml_data.nil? || !yaml_data.is_a?(Hash)
+        yaml_data = nil
+        raise IOError, "#{yaml_file} is not a valid YAML Hash data structure."
+      elsif yaml_data.empty?
+        yaml_data = nil
+        raise IOError, "#{yaml_file} contains no legible tests."
+      end
 
-        # Identify the type of the entity under test.
-        #
-        # @private
-        # @param [Hash] describe A Hash of describe {} attributes.
-        # @return [Symbol] One of :class, :define, :function, :provider, etc.
-        def get_eut_type(describe = {})
-          desc_type =
-            if describe.has_key?(:type)
-              describe[:type]
-            elsif describe.has_key?('type')
-              describe['type']
-            else
-              nil
-            end
-
-          if !desc_type.nil?
-            desc_type.to_sym
-          else
-            guess_type_from_path(caller_locations.first.path)
-          end
-        end
-
-        def apply_describe(apply_attrs = {}, default_attrs = {})
-          full_attrs = default_attrs.merge(apply_attrs)
-          desc_name  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
-            'name',
-            full_attrs
-          )
-          desc_type  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
-            'type',
-            full_attrs
-          )
-          if desc_type.nil?
-            # Probably an inner describe
-            RSpec.describe(desc_name) { apply_content(full_attrs) }
-          else
-            # Probably the outer-most describe
-            outer_self = self
-            RSpec.describe(desc_name, :type => desc_type) do
-              outer_self.apply_content(full_attrs)
-            end
-          end
-        end
-
-        def apply_context(apply_attrs = {}, default_attrs = {})
-          full_attrs    = default_attrs.merge(apply_attrs)
-          context_name  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
-            'name',
-            full_attrs
-          )
-          context(context_name) { apply_content(full_attrs) }
-        end
-
-        def apply_describes(data = {})
-          RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
-            'describe',
-            data
-          ).each { |container| apply_describe(container) }
-        end
-
-        def apply_contexts(data = {})
-          RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
-            'context',
-            data
-          ).each { |container| apply_context(container) }
-        end
-
-        def apply_tests(data = {})
-          RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
-            'tests',
-            data,
-            {}
-          ).each do |method, args|
-            matcher = RSpec::Puppet::MatcherHelpers.get_matcher_for(
-              method,
-              args
-            )
-            it { is_expected.to matcher }
-          end
-        end
-
-        # Order:
-        #   1. subject
-        #   2. let
-        #   3. before (missing)
-        #   4. after (missing)
-        #   5. it examples
-        #   6. describe
-        #   7. context
-        #   8. variants (missing)
-        def apply_content(apply_data = {})
-          apply_subject(apply_data)
-          apply_lets(apply_data)
-          #apply_before(apply_data)
-          #apply_after(apply_data)
-          apply_tests(apply_data)
-          apply_describes(apply_data)
-          apply_contexts(apply_data)
-          #apply_variants(apply_data)
-        end
-
-        def apply_subject(data = {})
-          subject = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
-            'subject',
-            data
-          )
-          if !subject.nil?
-            subject { subject }
-          end
-        end
-
-        # Sets all let variables.
-        #
-        # @private
-        # @param data [Hash] The data to scan for let variables
-        # @example As YAML
-        #  ---
-        #  let:
-        #    class: my_class
-        #    node: my-node.my-domain.tld
-        #    facts:
-        #      kernel: Linux
-        #      os:
-        #        family: RedHat
-        #        name: CentOS
-        #        release:
-        #          major: 7
-        #          minor: 1
-        def apply_lets(data = {})
-          RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
-            'let',
-            data
-          ).each { |k,v| let(k.to_sym) { v } }
-        end
-
-        # Attempts to load the YAML test data.
-        #
-        # @private
-        # @raise IOError when the source file is not valid YAML or does not
-        #  contain a Hash.
-        def load_test_data
-          # The test data file must exist
-          if !File.exists?(@rspec_yaml)
-            raise IOError, "#{@rspec_yaml} does not exit."
-          end
-
-          begin
-            @test_data = YAML.load_file(@rspec_yaml)
-          rescue Psych::SyntaxError => ex
-            raise IOError, "#{@rspec_yaml} contains a YAML syntax error."
-          rescue ArgumentError => ex
-            raise IOError, "#{@rspec_yaml} contains missing or undefined entities."
-          rescue
-            raise IOError, "#{@rspec_yaml} could not be read or is not YAML."
-          end
-
-          # Must be a populated Hash
-          if @test_data.nil? || !@test_data.is_a?(Hash)
-            @test_data = nil
-            raise IOError, "#{@rspec_yaml} is not a valid YAML Hash data structure."
-          elsif @test_data.empty?
-            @test_data = nil
-            raise IOError, "#{@rspec_yaml} contains no legible tests."
-          end
-        end
+      yaml_data
     end
   end
 end

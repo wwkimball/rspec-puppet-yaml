@@ -3,7 +3,7 @@ module RSpec::Puppet
     # A collection of static methods that help coerce data into simpler (to
     # digest) forms.  This is necessitated primarily because YAML files can be
     # written with either String or Symbol keys for the same value.
-    class DataHelpers
+    module DataHelpers
       # Accepts Hashes-of-Hashes -- where each key is the entry's :name and --
       # Arrays-of-Hashes -- where each Hash has a :name element -- returning
       # both forms as an Array-of-Hashes with a guaranteed 'name' element.  Any
