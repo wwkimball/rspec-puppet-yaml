@@ -103,7 +103,7 @@ module RSpec::Puppet
 
       matcher = RSpec::Puppet::ManifestMatchers::CreateGeneric.new(
         method,
-        args
+        args[0]
       )
 
       # Try to be lenient on the Hash requirement for tests
@@ -117,8 +117,6 @@ module RSpec::Puppet
             matcher.send(k.to_sym, v)
           end
         end
-      elsif tests.is_a?(String) || tests.is_a?(Symbol)
-        matcher.send(tests)
       elsif !tests.nil?
         # Anything left is assumed to be an 'ensure' test
         matcher.send(:with_ensure, tests)

@@ -17,7 +17,7 @@ module RSpec::Puppet
       def self.get_array_of_named_hashes(key, data = {})
         coerced_hashes = []
         hashes = RSpec::Puppet::Yaml::DataHelpers.get_named_hash(key, data, {})
-        return hashes if hashes.empty?  # Do nothing when there is nothing to do
+        return coerced_hashes if hashes.empty?  # Do nothing when there is nothing to do
 
         if hashes.kind_of?(Array)
           hashes.each { |hash|
@@ -45,6 +45,8 @@ module RSpec::Puppet
         else
           raise ArgumentError, "#{key} is for neither an Array nor a Hash value."
         end
+
+        coerced_hashes
       end
 
       # Attempts to get an immediate child Hash from a parent Hash that is

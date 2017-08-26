@@ -1,10 +1,42 @@
-require 'pp'
+# Gratuitously copied from the following and slamming everything into the global
+# scope because I couldn't find a Ruby way to call this function from my own
+# code while keeping RSpec happy.  I tried a Class-based approach.  I tried a
+# Module-extend approach.  While I was able to make calls to this function from
+# the appropriate scope in either model, doing so either broke RSpec's ability
+# to find its own `it` or my `apply_content` (when it was either a Class member
+# or Module function).  Why does Ruby make this so damn difficult?!  I've now
+# uterly burned over 30 hours of my life on this problem, so I'm "throwing in
+# the towel" and just copying this code.  I'm DONE fighting with Ruby on this
+# issue!  It SUCKS to be blocked from using any namespaces but I just can't find
+# any other way to move forward at this point.
+#
+# @see https://github.com/rodjek/rspec-puppet/blob/434653f8a143e047a082019975b66fb2323051eb/lib/rspec-puppet/support.rb#L25-L46
+def guess_type_from_path(path)
+  case path
+  when /spec\/defines/
+    :define
+  when /spec\/classes/
+    :class
+  when /spec\/functions/
+    :function
+  when /spec\/hosts/
+    :host
+  when /spec\/types/
+    :type
+  when /spec\/type_aliases/
+    :type_alias
+  when /spec\/provider/
+    :provider
+  when /spec\/applications/
+    :application
+  else
+    :unknown
+  end
+end
 
 # Converts the supplied YAML data into rspec examples.
 def parse_rspec_puppet_yaml(yaml_file)
   test_data = load_test_data(yaml_file)
-  $stdout.puts("parse_yaml got data:")
-  pp test_data
 
   # Apply any top-level lets
   apply_lets(
@@ -23,7 +55,7 @@ def parse_rspec_puppet_yaml(yaml_file)
       test_data
     ),
     { 'name' => get_eut_name(yaml_file, rspec_file),
-      'type' => :class #guess_type_from_path(rspec_file) # RSpec::Puppet::Yaml::Parser.guess_type_from_path(rspec_file)
+      'type' => guess_type_from_path(rspec_file)
     }
   )
 end
@@ -62,9 +94,7 @@ def apply_describe(apply_attrs = {}, default_attrs = {})
   else
     # Probably the outer-most describe
     describe(desc_name, :type => desc_type) do
-      $stdout.puts("describe #{desc_name}:#{desc_type.to_s} {")
       apply_content(full_attrs)
-      $stdout.puts("} ## describe #{desc_name}:#{desc_type.to_s}")
     end
   end
 end
@@ -76,23 +106,59 @@ def apply_context(apply_attrs = {}, default_attrs = {})
     full_attrs
   )
   context(context_name) do
-    $stdout.puts("context #{context_name} {")
     apply_content(full_attrs)
-    $stdout.puts("} ## context #{context_name}")
   end
 end
 
-def apply_describes(describes = {})
+def apply_describes(describes = [])
+  bad_input = false
+
+  # Input must be an Array
+  if !describes.kind_of?(Array)
+    bad_input = true
+  end
+
+  # Every element of the input must be a Hash, each with a :name attribute
+  describes.each do |container|
+    if !container.is_a?(Hash)
+      bad_input = true
+    elsif !container.has_key?('name') && !container.has_key?(:name)
+      bad_input = true
+    end
+  end
+
+  if bad_input
+    raise ArgumentError, "apply_describes requires an Array of Hashes, each with a :name attribute."
+  end
+
   describes.each { |container| apply_describe(container) }
 end
 
-def apply_contexts(contexts = {})
+def apply_contexts(contexts = [])
+  bad_input = false
+
+  # Input must be an Array
+  if !contexts.kind_of?(Array)
+    bad_input = true
+  end
+
+  # Every element of the input must be a Hash, each with a :name attribute
+  contexts.each do |container|
+    if !container.is_a?(Hash)
+      bad_input = true
+    elsif !container.has_key?('name') && !container.has_key?(:name)
+      bad_input = true
+    end
+  end
+
+  if bad_input
+    raise ArgumentError, "apply_contexts requires an Array of Hashes, each with a :name attribute."
+  end
+
   contexts.each { |container| apply_context(container) }
 end
 
 def apply_tests(tests = {})
-  $stdout.puts("apply_tests got data:")
-  pp tests
   tests.each do |method, props|
     # props must be split into args and tests based on method
     case method.to_s
@@ -102,24 +168,23 @@ def apply_tests(tests = {})
     when /^have_.+_resource_count$/
       args = props
       calls = {}
+    when /^contain_.+$/
+      # There can be only one beyond this point, so recurse a necessary
+      if 1 < props.keys.count
+        props.each { |k,v| apply_tests({method => {k => v}})}
+        return  # Avoid processing the first entry twice
+      end
+
+      args = [ props.keys.first ]
+      calls = props.values.first
     end
 
-    $stdout.puts("...split props into:")
-    $stdout.puts("......args:")
-    pp args
-    $stdout.puts("......calls:")
-    pp calls
-
-    $stdout.puts("it #{method} {")
     matcher = RSpec::Puppet::MatcherHelpers.get_matcher_for(
       method,
       args,
       calls
     )
-    $stdout.puts("Got matcher:")
-    pp matcher
     it { is_expected.to matcher }
-    $stdout.puts("} ## it #{method}")
   end
 end
 
@@ -133,9 +198,6 @@ end
 #   7. context
 #   8. variants (missing)
 def apply_content(apply_data = {})
-  $stdout.puts("...applying data:")
-  pp apply_data
-
   apply_subject(
     RSpec::Puppet::Yaml::DataHelpers.get_named_value(
       'subject',
@@ -195,12 +257,8 @@ end
 #          major: 7
 #          minor: 1
 def apply_lets(lets = {})
-  $stdout.puts("apply_lets got data:")
-  pp lets
   lets.each { |k,v|
-    $stdout.puts("let #{k} fucks #{v} in the ass {")
     let(k.to_sym) { v }
-    $stdout.puts("} ## let #{k} fucks #{v} in the ass")
   }
 end
 
