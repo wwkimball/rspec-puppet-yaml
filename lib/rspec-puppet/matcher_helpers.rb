@@ -5,7 +5,8 @@ module RSpec::Puppet
   # @see https://github.com/rodjek/rspec-puppet
   class MatcherHelpers
     # Attempts to create and return an appropriate RSpec::Puppet::*Matcher for a
-    # known matching method and its arguments.
+    # known matching method and its arguments.  If tests are provided and the
+    # matcher supports them, the matcher will be built up with the tests.
     #
     # @param method [Variant[String,Symbol]] A recognizable RSpec::Puppet
     #  matcher; one of: contain_*, create_*, have_*_count, compile, run, or
@@ -23,31 +24,32 @@ module RSpec::Puppet
       method_str = method.to_s
       method_sym = method.to_sym
 
-      if method_str =~ /^(contain|create)_.+$/
+      case method_str
+      when /^(contain|create)_.+$/
         matcher = RSpec::Puppet::MatcherHelpers.get_contain_matcher(
           method_sym,
           args,
           tests
         )
-      elsif method_str =~ /^have_.+_resource_count$/
+      when /^have_.+_resource_count$/
         matcher = RSpec::Puppet::MatcherHelpers.get_count_matcher(
           method_sym,
           args,
           tests
         )
-      elsif 'compile' == method_str
+      when 'compile'
         matcher = RSpec::Puppet::MatcherHelpers.get_compile_matcher(
           method_sym,
           args,
           tests
         )
-      elsif 'run' == method_str
+      when 'run'
         matcher = RSpec::Puppet::MatcherHelpers.get_function_matcher(
           method_sym,
           args,
           tests
         )
-      elsif 'be_valid_type' == method_str
+      when 'be_valid_type'
         matcher = RSpec::Puppet::MatcherHelpers.get_type_matcher(
           method_sym,
           args,
@@ -272,8 +274,9 @@ module RSpec::Puppet
     #
     # @param method [Symbol] The :be_valid_type matcher type.
     # @param args [Optional[Variant[Integer,Array[Integer]]]] **IGNORED** in
-    #  this version!  Should a future version of the compile matcher support
-    #  constructor arguments, this will become useful.
+    #  this version!  Should a future version of
+    #  RSpec::Puppet::TypeMatchers::CreateGeneric support constructor arguments,
+    #  this will become useful.
     # @param tests [Optional[Hash[Variant[String,Symbol],Any]]] Set of unit
     #  tests to apply to the matcher, expressed as `:method_call => value(s)`
     #  tuples.  Use `nil` as the value for method_calls that don't accept
@@ -293,7 +296,7 @@ module RSpec::Puppet
     #    { :with_provider => :apt }
     #  )
     def self.get_type_matcher(method, args = [], tests = {})
-      matcher = RSpec::Puppet::ManifestMatchers::CreateGeneric.new(
+      matcher = RSpec::Puppet::TypeMatchers::CreateGeneric.new(
         method,
         args
       )

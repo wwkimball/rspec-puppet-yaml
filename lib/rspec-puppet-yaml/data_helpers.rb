@@ -19,6 +19,11 @@ module RSpec::Puppet
         hashes = RSpec::Puppet::Yaml::DataHelpers.get_named_hash(key, data, {})
         return coerced_hashes if hashes.empty?  # Do nothing when there is nothing to do
 
+        # Expected cases:
+        # 1. [{'this is a name' => {:key => val}}, {'this is also a name' => {:key => val}}]
+        # 2. {'this is a name' => {:key => value}}
+        # 3. [{:name => 'the name', :key => value}, {:name => 'another name', :key => value}]
+        # 4. {:name => 'the name, :key => value}
         if hashes.kind_of?(Array)
           hashes.each { |hash|
             if hash.is_a?(Hash)
@@ -33,15 +38,18 @@ module RSpec::Puppet
             end
           }
         elsif hashes.is_a?(Hash)
-          hashes.each { |hash_name, hash|
-            # Permit name overrides, but force the String key type
-            alt_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value('name', hash)
-            if alt_name.nil? || alt_name.empty?
-              coerced_hashes << hash.merge({'name' => hash_name})
+          hash_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value('name', hashes)
+          if hash_name.nil? || hash_name.empty?
+            if 1 == hashes.keys.count
+              hash_name = hashes.keys.first
+              hash = hashes[hash_name]
+              coerced_hashes << hash.select {|k,v| k != :name}.merge({'name' => hash_name})
             else
-              coerced_hashes << hash.delete(:name).merge({'name' => alt_name})
+              raise ArgumentError, "#{key} Hashes must be named or have a :name or 'name' attribute."
             end
-          }
+          else
+            coerced_hashes << hashes.select {|k,v| k != :name}.merge({'name' => hash_name})
+          end
         else
           raise ArgumentError, "#{key} is for neither an Array nor a Hash value."
         end
