@@ -1,13 +1,5 @@
-# Simply creates the necessary YAML parser and runs it against a supplied
-# YAML data file.
-#
-# @since 0.1.0
-def parse_yaml(rspec_yaml_file)
-  parse_rspec_puppet_yaml(rspec_yaml_file)
-end
-
 # Identifies a YAML data file based on the name of a *_spec.rb rspec file and
-# passes it to `parse_yaml` to initiate parsing.
+# passes it to `parse_rspec_puppet_yaml` to initiate parsing.
 #
 # @since 0.1.0
 def parse_yaml_from_spec(rspec_file)
@@ -18,12 +10,12 @@ def parse_yaml_from_spec(rspec_file)
       "#{$1}.yml"
     ].each do |yaml_file|
       if File.exist?(yaml_file)
-        parse_yaml(yaml_file)
+        parse_rspec_puppet_yaml(yaml_file)
       end
     end
   elsif rspec_file =~ /^(.+\.ya?ml)$/
-    parse_yaml($1)
+    parse_rspec_puppet_yaml($1)
   else
-    parse_yaml(rspec_file)
+    parse_rspec_puppet_yaml(rspec_file)
   end
 end

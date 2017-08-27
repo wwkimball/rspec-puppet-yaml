@@ -1,9 +1,9 @@
 # Converts the supplied YAML data into rspec examples.
 def parse_rspec_puppet_yaml(yaml_file)
-  test_data = load_test_data(yaml_file)
+  test_data = __load_rspec_puppet_yaml_data(yaml_file)
 
   # Apply any top-level lets
-  apply_lets(
+  __apply_rspec_puppet_lets(
     RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
       'let',
       test_data
@@ -18,7 +18,7 @@ def parse_rspec_puppet_yaml(yaml_file)
     .first
     .path
   default_describe  = {
-    'name' => get_eut_name(yaml_file, rspec_file),
+    'name' => __get_eut_name(yaml_file, rspec_file),
     'type' => guess_type_from_path(rspec_file)
   }
   all_top_describes = []
@@ -26,14 +26,14 @@ def parse_rspec_puppet_yaml(yaml_file)
     'describe',
     test_data,
   ).each { |desc| all_top_describes << default_describe.merge(desc)}
-  apply_describes(all_top_describes, test_data)
+  __apply_rspec_puppet_describes(all_top_describes, test_data)
 end
 
 # Identify the name of the entity under test.
 #
 # @param [String] rspec_yaml_file_name YAML file name that describes tests.
 # @return [String] Name of the entity under test.
-def get_eut_name(rspec_yaml_file_name, rspec_file_name)
+def __get_eut_name(rspec_yaml_file_name, rspec_file_name)
   base_yaml   = File.basename(rspec_yaml_file_name)
   base_caller = File.basename(rspec_file_name)
 
@@ -46,7 +46,7 @@ def get_eut_name(rspec_yaml_file_name, rspec_file_name)
   end
 end
 
-def apply_describe(apply_attrs = {}, parent_data = {})
+def __apply_rspec_puppet_describe(apply_attrs = {}, parent_data = {})
   desc_name  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
     'name',
     apply_attrs
@@ -56,25 +56,25 @@ def apply_describe(apply_attrs = {}, parent_data = {})
     apply_attrs
   )
   if desc_type.nil?
-    describe(desc_name) { apply_content(apply_attrs, parent_data) }
+    describe(desc_name) { __apply_rspec_puppet_content(apply_attrs, parent_data) }
   else
     describe(desc_name, :type => desc_type) do
-      apply_content(apply_attrs, parent_data)
+      __apply_rspec_puppet_content(apply_attrs, parent_data)
     end
   end
 end
 
-def apply_context(apply_attrs = {}, parent_data = {})
+def __apply_rspec_puppet_context(apply_attrs = {}, parent_data = {})
   context_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
     'name',
     apply_attrs
   )
   context(context_name) do
-    apply_content(apply_attrs, parent_data)
+    __apply_rspec_puppet_content(apply_attrs, parent_data)
   end
 end
 
-def apply_variant(apply_attrs = {}, parent_data = {})
+def __apply_rspec_puppet_variant(apply_attrs = {}, parent_data = {})
   variant_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
     'name',
     apply_attrs
@@ -102,11 +102,11 @@ def apply_variant(apply_attrs = {}, parent_data = {})
   )
 
   context(variant_name) do
-    apply_content(context_data, parent_data)
+    __apply_rspec_puppet_content(context_data, parent_data)
   end
 end
 
-def apply_describes(describes = [], parent_data = {})
+def __apply_rspec_puppet_describes(describes = [], parent_data = {})
   bad_input = false
 
   # Input must be an Array
@@ -124,13 +124,13 @@ def apply_describes(describes = [], parent_data = {})
   end
 
   if bad_input
-    raise ArgumentError, "apply_describes requires an Array of Hashes, each with a :name attribute."
+    raise ArgumentError, "__apply_rspec_puppet_describes requires an Array of Hashes, each with a :name attribute."
   end
 
-  describes.each { |container| apply_describe(container, parent_data) }
+  describes.each { |container| __apply_rspec_puppet_describe(container, parent_data) }
 end
 
-def apply_contexts(contexts = [], parent_data = {})
+def __apply_rspec_puppet_contexts(contexts = [], parent_data = {})
   bad_input = false
 
   # Input must be an Array
@@ -148,20 +148,20 @@ def apply_contexts(contexts = [], parent_data = {})
   end
 
   if bad_input
-    raise ArgumentError, "apply_contexts requires an Array of Hashes, each with a :name attribute."
+    raise ArgumentError, "__apply_rspec_puppet_contexts requires an Array of Hashes, each with a :name attribute."
   end
 
-  contexts.each { |container| apply_context(container, parent_data) }
+  contexts.each { |container| __apply_rspec_puppet_context(container, parent_data) }
 end
 
-def apply_tests(tests = {})
+def __apply_rspec_puppet_tests(tests = {})
   tests.each do |method, props|
     # props must be split into args and tests based on method
     case method.to_s
     when /^(contain|create)_.+$/
       # There can be only one beyond this point, so recurse as necessary
       if 1 < props.keys.count
-        props.each { |k,v| apply_tests({method => {k => v}})}
+        props.each { |k,v| __apply_rspec_puppet_tests({method => {k => v}})}
         return  # Avoid processing the first entry twice
       end
 
@@ -199,42 +199,42 @@ end
 #   6. describe
 #   7. context
 #   8. variants (missing)
-def apply_content(apply_data = {}, parent_data = {})
-  apply_subject(
+def __apply_rspec_puppet_content(apply_data = {}, parent_data = {})
+  __apply_rspec_puppet_subject(
     RSpec::Puppet::Yaml::DataHelpers.get_named_value(
       'subject',
       apply_data,
     )
   )
-  apply_lets(
+  __apply_rspec_puppet_lets(
     RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
       'let',
       apply_data
     )
   )
-  # TODO apply_before(apply_data)
-  # TODO apply_after(apply_data)
-  apply_tests(
+  # TODO __apply_rspec_puppet_before(apply_data)
+  # TODO __apply_rspec_puppet_after(apply_data)
+  __apply_rspec_puppet_tests(
     RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
       'tests',
       apply_data
     )
   )
-  apply_describes(
+  __apply_rspec_puppet_describes(
     RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
       'describe',
       apply_data
     ),
     apply_data
   )
-  apply_contexts(
+  __apply_rspec_puppet_contexts(
     RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
       'context',
       apply_data
     ),
     apply_data
   )
-  apply_variants(
+  __apply_rspec_puppet_variants(
     RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
       'variants',
       apply_data
@@ -243,7 +243,7 @@ def apply_content(apply_data = {}, parent_data = {})
   )
 end
 
-def apply_variants(variants = [], parent_data = {})
+def __apply_rspec_puppet_variants(variants = [], parent_data = {})
   bad_input = false
 
   # Input must be an Array
@@ -261,13 +261,13 @@ def apply_variants(variants = [], parent_data = {})
   end
 
   if bad_input
-    raise ArgumentError, "apply_variants requires an Array of Hashes, each with a :name attribute."
+    raise ArgumentError, "__apply_rspec_puppet_variants requires an Array of Hashes, each with a :name attribute."
   end
 
-  variants.each { |variant| apply_variant(variant, parent_data) }
+  variants.each { |variant| __apply_rspec_puppet_variant(variant, parent_data) }
 end
 
-def apply_subject(subject)
+def __apply_rspec_puppet_subject(subject)
   if !subject.nil?
     subject { subject }
   end
@@ -289,7 +289,7 @@ end
 #        release:
 #          major: 7
 #          minor: 1
-def apply_lets(lets = {})
+def __apply_rspec_puppet_lets(lets = {})
   lets.each { |k,v|
     let(k.to_sym) { v }
   }
@@ -299,7 +299,7 @@ end
 #
 # @raise IOError when the source file is not valid YAML or does not
 #  contain a Hash.
-def load_test_data(yaml_file)
+def __load_rspec_puppet_yaml_data(yaml_file)
   # The test data file must exist
   if !File.exists?(yaml_file)
     raise IOError, "#{yaml_file} does not exit."
