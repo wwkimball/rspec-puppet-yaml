@@ -10,8 +10,10 @@ def parse_rspec_puppet_yaml(yaml_file)
     )
   )
 
-  # The top-most entity must be a 'describe', which must have both name
-  # and type.
+  # The top-most entity must be a 'describe', which must have both name (which
+  # must be identical to the entity-under-test) and type-of-entity (in case the
+  # user failed to follow the prescribed directory structure for unit testing
+  # Puppet modules).
   rspec_file        = caller_locations.select {|e| e.path =~ /.+_spec.rb$/}
     .first
     .path
@@ -44,44 +46,41 @@ def get_eut_name(rspec_yaml_file_name, rspec_file_name)
   end
 end
 
-def apply_describe(apply_attrs = {}, default_attrs = {})
-  full_attrs = default_attrs.merge(apply_attrs)
+def apply_describe(apply_attrs = {})
   desc_name  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
     'name',
-    full_attrs
+    apply_attrs
   )
   desc_type  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
     'type',
-    full_attrs
+    apply_attrs
   )
   if desc_type.nil?
-    describe(desc_name) { apply_content(full_attrs) }
+    describe(desc_name) { apply_content(apply_attrs) }
   else
     describe(desc_name, :type => desc_type) do
-      apply_content(full_attrs)
+      apply_content(apply_attrs)
     end
   end
 end
 
-def apply_context(apply_attrs = {}, default_attrs = {})
-  full_attrs   = default_attrs.merge(apply_attrs)
+def apply_context(apply_attrs = {})
   context_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
     'name',
-    full_attrs
+    apply_attrs
   )
   context(context_name) do
-    apply_content(full_attrs)
+    apply_content(apply_attrs)
   end
 end
 
-def apply_variant(apply_attrs = {}, default_attrs = {})
-  full_attrs   = default_attrs.merge(apply_attrs)
+def apply_variant(apply_attrs = {})
   variant_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
     'name',
-    full_attrs
+    apply_attrs
   )
   context(variant_name) do
-    apply_content(full_attrs)
+    apply_content(apply_attrs)
   end
 end
 
