@@ -26,7 +26,7 @@ def parse_rspec_puppet_yaml(yaml_file)
     'describe',
     test_data,
   ).each { |desc| all_top_describes << default_describe.merge(desc)}
-  apply_describes(all_top_describes)
+  apply_describes(all_top_describes, test_data)
 end
 
 # Identify the name of the entity under test.
@@ -46,7 +46,7 @@ def get_eut_name(rspec_yaml_file_name, rspec_file_name)
   end
 end
 
-def apply_describe(apply_attrs = {})
+def apply_describe(apply_attrs = {}, parent_data = {})
   desc_name  = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
     'name',
     apply_attrs
@@ -56,35 +56,38 @@ def apply_describe(apply_attrs = {})
     apply_attrs
   )
   if desc_type.nil?
-    describe(desc_name) { apply_content(apply_attrs) }
+    describe(desc_name) { apply_content(apply_attrs, parent_data) }
   else
     describe(desc_name, :type => desc_type) do
-      apply_content(apply_attrs)
+      apply_content(apply_attrs, parent_data)
     end
   end
 end
 
-def apply_context(apply_attrs = {})
+def apply_context(apply_attrs = {}, parent_data = {})
   context_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
     'name',
     apply_attrs
   )
   context(context_name) do
-    apply_content(apply_attrs)
+    apply_content(apply_attrs, parent_data)
   end
 end
 
-def apply_variant(apply_attrs = {})
+def apply_variant(apply_attrs = {}, parent_data = {})
   variant_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
     'name',
     apply_attrs
   )
   context(variant_name) do
-    apply_content(apply_attrs)
+    apply_content(
+      parent_data.select{|k,v| 'variants' != k.to_s}.merge(apply_attrs),
+      parent_data
+    )
   end
 end
 
-def apply_describes(describes = [])
+def apply_describes(describes = [], parent_data = {})
   bad_input = false
 
   # Input must be an Array
@@ -105,10 +108,10 @@ def apply_describes(describes = [])
     raise ArgumentError, "apply_describes requires an Array of Hashes, each with a :name attribute."
   end
 
-  describes.each { |container| apply_describe(container) }
+  describes.each { |container| apply_describe(container, parent_data) }
 end
 
-def apply_contexts(contexts = [])
+def apply_contexts(contexts = [], parent_data = {})
   bad_input = false
 
   # Input must be an Array
@@ -129,7 +132,7 @@ def apply_contexts(contexts = [])
     raise ArgumentError, "apply_contexts requires an Array of Hashes, each with a :name attribute."
   end
 
-  contexts.each { |container| apply_context(container) }
+  contexts.each { |container| apply_context(container, parent_data) }
 end
 
 def apply_tests(tests = {})
@@ -177,7 +180,7 @@ end
 #   6. describe
 #   7. context
 #   8. variants (missing)
-def apply_content(apply_data = {})
+def apply_content(apply_data = {}, parent_data = {})
   apply_subject(
     RSpec::Puppet::Yaml::DataHelpers.get_named_value(
       'subject',
@@ -202,23 +205,26 @@ def apply_content(apply_data = {})
     RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
       'describe',
       apply_data
-    )
+    ),
+    apply_data
   )
   apply_contexts(
     RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
       'context',
       apply_data
-    )
+    ),
+    apply_data
   )
   apply_variants(
     RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
       'variants',
       apply_data
-    )
+    ),
+    apply_data
   )
 end
 
-def apply_variants(variants = [])
+def apply_variants(variants = [], parent_data = {})
   bad_input = false
 
   # Input must be an Array
@@ -239,7 +245,7 @@ def apply_variants(variants = [])
     raise ArgumentError, "apply_variants requires an Array of Hashes, each with a :name attribute."
   end
 
-  variants.each { |variant| apply_context(variant) }
+  variants.each { |variant| apply_variant(variant, parent_data) }
 end
 
 def apply_subject(subject)

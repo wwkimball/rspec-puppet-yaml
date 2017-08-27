@@ -21,7 +21,7 @@ module RSpec::Puppet
 
         # Expected cases:
         # 1. [{'this is a name' => {:key => val}}, {'this is also a name' => {:key => val}}]
-        # 2. {'this is a name' => {:key => value}}
+        # 2. {'this is a name' => {:key => value}, 'this is also a name' => {:key => value}}
         # 3. [{:name => 'the name', :key => value}, {:name => 'another name', :key => value}]
         # 4. {:name => 'the name, :key => value}
         if hashes.kind_of?(Array)
