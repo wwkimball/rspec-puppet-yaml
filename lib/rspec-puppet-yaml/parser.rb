@@ -73,7 +73,9 @@ def __apply_rspec_puppet_describe(apply_attrs = {}, parent_data = {})
     apply_attrs
   )
   if desc_type.nil?
-    describe(desc_name) { __apply_rspec_puppet_content(apply_attrs, parent_data) }
+    describe(desc_name) do
+      __apply_rspec_puppet_content(apply_attrs, parent_data)
+    end
   else
     describe(desc_name, :type => desc_type) do
       __apply_rspec_puppet_content(apply_attrs, parent_data)
@@ -117,14 +119,16 @@ def __apply_rspec_puppet_variant(apply_attrs = {}, parent_data = {})
   # The deep_merge gem's funtionality unfortunately changes the destination
   # Hash, even when you attempt to store the result to another variable and use
   # the non-bang method call.  This seems like a pretty serious bug, to me,
-  # despite the gem's documentation clearly stating this will happen.  IMHO, the
+  # despite the gem's documentation implying that this will happen.  IMHO, the
   # gem's author made a very poor decision in how the bang and non-bang behavior
   # would differ (merely a difference in the default values of its options
   # rather than the Ruby-norm of affecting or not-affecting the calling Object).
   # To workaround this issue and protect the original destination against
   # unwanted change, a deep copy of the destination Hash must be taken and used.
   parent_dup   = Marshal.load(Marshal.dump(parent_data))
-  context_data = parent_dup.select { |k,v| 'variants' != k.to_s }.deep_merge!(
+  context_data = parent_dup.select do |k,v|
+    !['variants', 'before', 'after', 'subject'].include?(k.to_s)
+  end.deep_merge!(
     apply_attrs,
     { :extend_existing_arrays => false,
       :merge_hash_arrays      => true,
@@ -170,7 +174,9 @@ def __apply_rspec_puppet_describes(describes = [], parent_data = {})
     raise ArgumentError, "__apply_rspec_puppet_describes requires an Array of Hashes, each with a :name attribute."
   end
 
-  describes.each { |container| __apply_rspec_puppet_describe(container, parent_data) }
+  describes.each do |container|
+    __apply_rspec_puppet_describe(container, parent_data)
+  end
 end
 
 # Generates a set of RSpec `context` entities.
@@ -203,7 +209,42 @@ def __apply_rspec_puppet_contexts(contexts = [], parent_data = {})
     raise ArgumentError, "__apply_rspec_puppet_contexts requires an Array of Hashes, each with a :name attribute."
   end
 
-  contexts.each { |container| __apply_rspec_puppet_context(container, parent_data) }
+  contexts.each do |container|
+    __apply_rspec_puppet_context(container, parent_data)
+  end
+end
+
+# Generates a set of variants of RSpec entities.
+#
+# @note The __ prefix denotes this as a "private" function.  Do not call this
+#  directly.
+#
+# @param variants [Array[Hash]] Set of entities to generate.  Each element must
+#  be a Hash that has a :name or 'name' attribute.
+# @param parent_data [Hash] Used for recursion, this is the parent for this
+#  entity.
+def __apply_rspec_puppet_variants(variants = [], parent_data = {})
+  bad_input = false
+
+  # Input must be an Array
+  if !variants.kind_of?(Array)
+    bad_input = true
+  end
+
+  # Every element of the input must be a Hash, each with a :name attribute
+  variants.each do |variant|
+    if !variant.is_a?(Hash)
+      bad_input = true
+    elsif !variant.has_key?('name') && !variant.has_key?(:name)
+      bad_input = true
+    end
+  end
+
+  if bad_input
+    raise ArgumentError, "__apply_rspec_puppet_variants requires an Array of Hashes, each with a :name attribute."
+  end
+
+  variants.each { |variant| __apply_rspec_puppet_variant(variant, parent_data) }
 end
 
 # Generates a set of RSpec `it {}` "examples".
@@ -248,90 +289,46 @@ def __apply_rspec_puppet_tests(tests = {})
   end
 end
 
-# Generates all specified RSpec entities.  This is assumed to be run within a
-# valid RSpec container, like `describe` or `context`.
+# Generates an RSpec `before {}` entity with one or more global-scope method
+# calls as its contents.
 #
 # @note The __ prefix denotes this as a "private" function.  Do not call this
 #  directly.
 #
-# @param apply_data [Hash] The entities to generate.
-# @param parent_data [Hash] Used for recursion, this is the parent for this
-#  entity.
-def __apply_rspec_puppet_content(apply_data = {}, parent_data = {})
-  __apply_rspec_puppet_subject(
-    RSpec::Puppet::Yaml::DataHelpers.get_named_value(
-      'subject',
-      apply_data,
-    )
-  )
-  __apply_rspec_puppet_lets(
-    RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
-      'let',
-      apply_data
-    )
-  )
-  # TODO __apply_rspec_puppet_before(apply_data)
-  # TODO __apply_rspec_puppet_after(apply_data)
-  __apply_rspec_puppet_tests(
-    RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
-      'tests',
-      apply_data
-    )
-  )
-  __apply_rspec_puppet_describes(
-    RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
-      'describe',
-      apply_data
-    ),
-    apply_data
-  )
-  __apply_rspec_puppet_contexts(
-    RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
-      'context',
-      apply_data
-    ),
-    apply_data
-  )
-  __apply_rspec_puppet_variants(
-    RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
-      'variants',
-      apply_data
-    ),
-    apply_data
-  )
-end
-
-# Generates a set of variants of RSpec entities.
-#
-# @note The __ prefix denotes this as a "private" function.  Do not call this
-#  directly.
-#
-# @param variants [Array[Hash]] Set of entities to generate.  Each element must
-#  be a Hash that has a :name or 'name' attribute.
-# @param parent_data [Hash] Used for recursion, this is the parent for this
-#  entity.
-def __apply_rspec_puppet_variants(variants = [], parent_data = {})
-  bad_input = false
-
-  # Input must be an Array
-  if !variants.kind_of?(Array)
-    bad_input = true
-  end
-
-  # Every element of the input must be a Hash, each with a :name attribute
-  variants.each do |variant|
-    if !variant.is_a?(Hash)
-      bad_input = true
-    elsif !variant.has_key?('name') && !variant.has_key?(:name)
-      bad_input = true
+# @param commands [Variant[String,Array[String]]] Command or commands to call.
+def __apply_rspec_puppet_before(commands)
+  if !commands.nil?
+    if commands.kind_of?(Array)
+      before do
+        commands.each { |command| Object.send(command.to_s.to_sym) }
+      end
+    elsif !commands.is_a?(Hash)
+      before { Object.send(commands.to_s.to_sym) }
+    else
+      raise ArgumentError, "__apply_rspec_puppet_before requires a command String or an Array of commands."
     end
   end
+end
 
-  if bad_input
-    raise ArgumentError, "__apply_rspec_puppet_variants requires an Array of Hashes, each with a :name attribute."
+# Generates an RSpec `after {}` entity with one or more global-scope method
+# calls as its contents.
+#
+# @note The __ prefix denotes this as a "private" function.  Do not call this
+#  directly.
+#
+# @param commands [Variant[String,Array[String]]] Command or commands to call.
+def __apply_rspec_puppet_after(commands)
+  if !commands.nil?
+    if commands.kind_of?(Array)
+      after do
+        commands.each { |command| Object.send(command.to_s.to_sym) }
+      end
+    elsif !commands.is_a?(Hash)
+      after { Object.send(commands.to_s.to_sym) }
+    else
+      raise ArgumentError, "__apply_rspec_puppet_after requires a command String or an Array of commands."
+    end
   end
-
-  variants.each { |variant| __apply_rspec_puppet_variant(variant, parent_data) }
 end
 
 # Generates an RSpec `subject {}` entity.
@@ -368,6 +365,69 @@ def __apply_rspec_puppet_lets(lets = {})
   lets.each { |k,v|
     let(k.to_sym) { v }
   }
+end
+
+# Generates all specified RSpec entities.  This is assumed to be run within a
+# valid RSpec container, like `describe` or `context`.
+#
+# @note The __ prefix denotes this as a "private" function.  Do not call this
+#  directly.
+#
+# @param apply_data [Hash] The entities to generate.
+# @param parent_data [Hash] Used for recursion, this is the parent of the
+#  receiving entity.
+def __apply_rspec_puppet_content(apply_data = {}, parent_data = {})
+  __apply_rspec_puppet_subject(
+    RSpec::Puppet::Yaml::DataHelpers.get_named_value(
+      'subject',
+      apply_data
+    )
+  )
+  __apply_rspec_puppet_lets(
+    RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
+      'let',
+      apply_data
+    )
+  )
+  __apply_rspec_puppet_before(
+    RSpec::Puppet::Yaml::DataHelpers.get_named_value(
+      'before',
+      apply_data
+    )
+  )
+  __apply_rspec_puppet_after(
+    RSpec::Puppet::Yaml::DataHelpers.get_named_value(
+      'after',
+      apply_data
+    )
+  )
+  __apply_rspec_puppet_tests(
+    RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
+      'tests',
+      apply_data
+    )
+  )
+  __apply_rspec_puppet_describes(
+    RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
+      'describe',
+      apply_data
+    ),
+    apply_data
+  )
+  __apply_rspec_puppet_contexts(
+    RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
+      'context',
+      apply_data
+    ),
+    apply_data
+  )
+  __apply_rspec_puppet_variants(
+    RSpec::Puppet::Yaml::DataHelpers.get_array_of_named_hashes(
+      'variants',
+      apply_data
+    ),
+    apply_data
+  )
 end
 
 # Attempts to load the YAML test data and return its data.
