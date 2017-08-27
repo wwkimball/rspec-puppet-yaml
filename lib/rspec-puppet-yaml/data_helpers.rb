@@ -45,7 +45,13 @@ module RSpec::Puppet
               hash = hashes[hash_name]
               coerced_hashes << hash.select {|k,v| k != :name}.merge({'name' => hash_name})
             else
-              raise ArgumentError, "#{key} Hashes must be named or have a :name or 'name' attribute."
+              hashes.each do |hash_name, hash|
+                if hash.nil? || !hash.is_a?(Hash)
+                  raise ArgumentError, "#{key} Hash named #{hash_name} must have a named Hash value."
+                else
+                  coerced_hashes << hash.select {|k,v| k != :name}.merge({'name' => hash_name})
+                end
+              end
             end
           else
             coerced_hashes << hashes.select {|k,v| k != :name}.merge({'name' => hash_name})

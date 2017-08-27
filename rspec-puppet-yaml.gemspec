@@ -40,4 +40,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rspec", "~> 3.0"
   spec.add_dependency "puppet", "~> 5"
   spec.add_dependency "rspec-puppet", "~> 2.6"
+  spec.add_dependency "deep_merge", "~> 1.1"
 end

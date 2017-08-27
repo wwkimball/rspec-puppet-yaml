@@ -79,11 +79,30 @@ def apply_variant(apply_attrs = {}, parent_data = {})
     'name',
     apply_attrs
   )
+
+  # The deep_merge gem's funtionality unfortunately changes the destination
+  # Hash, even when you attempt to store the result to another variable and use
+  # the non-bang method call.  This seems like a pretty serious bug, to me,
+  # despite the gem's documentation clearly stating this will happen.  IMHO, the
+  # gem's author made a very poor decision in how the bang and non-bang behavior
+  # would differ (merely a difference in the default values of its options
+  # rather than the Ruby-norm of affecting or not-affecting the calling Object).
+  # To workaround this issue and protect the original destination against
+  # unwanted change, a deep copy of the destination Hash must be taken and used.
+  parent_dup   = Marshal.load(Marshal.dump(parent_data))
+  context_data = parent_dup.select { |k,v| 'variants' != k.to_s }.deep_merge!(
+    apply_attrs,
+    { :extend_existing_arrays => false,
+      :merge_hash_arrays      => true,
+      :merge_nil_values       => false,
+      :overwrite_arrays       => false,
+      :preserve_unmergeables  => false,
+      :sort_merged_arrays     => false
+    }
+  )
+
   context(variant_name) do
-    apply_content(
-      parent_data.select{|k,v| 'variants' != k.to_s}.merge(apply_attrs),
-      parent_data
-    )
+    apply_content(context_data, parent_data)
   end
 end
 
