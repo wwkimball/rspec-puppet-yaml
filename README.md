@@ -1,4 +1,4 @@
-# RSpec::Puppet::Yaml
+# rspec-puppet-yaml
 
 This gem enables Puppet module authors to write RSpec unit tests as YAML instead of Ruby (omitting the single, trivial line of code necessary to pass your YAML to RSpec).  If you're more comfortable with YAML than Ruby, or are looking for a way to automate RSpec test generation and find YAML easier to serialize into than RSpec, then you'll want this gem.
 
@@ -518,7 +518,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/rspec-puppet-yaml. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/wwkimball/rspec-puppet-yaml. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 ## License
 
@@ -526,4 +526,4 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 ## Code of Conduct
 
-Everyone interacting in the RSpec::Puppet::Yaml project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/rspec-puppet-yaml/blob/master/CODE_OF_CONDUCT.md).
+Everyone interacting in the rspec-puppet-yaml project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/wwkimball/rspec-puppet-yaml/blob/master/CODE_OF_CONDUCT.md).
