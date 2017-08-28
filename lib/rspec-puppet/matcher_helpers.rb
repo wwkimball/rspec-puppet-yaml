@@ -31,7 +31,7 @@ module RSpec::Puppet
           args,
           tests
         )
-      when /^have_.+_resource_count$/
+      when /^have_.+_count$/
         matcher = RSpec::Puppet::MatcherHelpers.get_count_matcher(
           method_sym,
           args,
@@ -196,8 +196,8 @@ module RSpec::Puppet
     #  )
     #
     # @example The class compiles with all dependencies, simpler
-    #  matcher = RSpec::Puppet::MatcherHelpers.get_count_matcher(
-    #    :have_file_resource_count,
+    #  matcher = RSpec::Puppet::MatcherHelpers.get_compile_matcher(
+    #    :compile,
     #    nil,
     #    true
     #  )

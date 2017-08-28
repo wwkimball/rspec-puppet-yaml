@@ -46,3 +46,17 @@ def guess_type_from_path(path)
     :unknown
   end
 end
+
+# Helper to return a resource/node reference, so it gets translated in params to a raw string
+# without quotes.
+#
+# @param [String] type reference type
+# @param [String] title reference title
+# @return [RSpec::Puppet::RawString] return a new RawString with the type/title populated correctly
+#
+# @author Tim Sharpe
+# @license MIT
+# @see https://github.com/rodjek/rspec-puppet/blob/434653f8a143e047a082019975b66fb2323051eb/lib/rspec-puppet/support.rb#L404-L412
+def ref(type, title)
+  return RSpec::Puppet::RawString.new("#{type}['#{title}']")
+end

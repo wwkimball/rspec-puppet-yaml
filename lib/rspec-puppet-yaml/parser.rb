@@ -257,35 +257,50 @@ def __apply_rspec_puppet_tests(tests = {})
   tests.each do |method, props|
     # props must be split into args and tests based on method
     case method.to_s
-    when /^(contain|create)_.+$/
+    when /^(!)?((contain|create)_.+)$/
       # There can be only one beyond this point, so recurse as necessary
       if 1 < props.keys.count
         props.each { |k,v| __apply_rspec_puppet_tests({method => {k => v}})}
         return  # Avoid processing the first entry twice
       end
 
-      args = [ props.keys.first ]
-      calls = props.values.first
-    when /^have_.+_resource_count$/
-      args = props
-      calls = {}
-    when 'compile'
-      args = []
-      calls = props
-    when 'run'
-      args = []
-      calls = props
-    when 'be_valid_type'
-      args = []
-      calls = props
+      positive_test = $1.nil?
+      apply_method  = $2
+      args          = [ props.keys.first ]
+      calls         = props.values.first
+    when /^(!)?(have_.+_count)$/
+      positive_test = $1.nil?
+      apply_method  = $2
+      args          = props
+      calls         = {}
+    when /^(!)?(compile)$/
+      positive_test = $1.nil?
+      apply_method  = $2
+      args          = []
+      calls         = props
+    when /^(!)?(run)$/
+      positive_test = $1.nil?
+      apply_method  = $2
+      args          = []
+      calls         = props
+    when /^(!)?(be_valid_type)$/
+      positive_test = $1.nil?
+      apply_method  = $2
+      args          = []
+      calls         = props
     end
 
     matcher = RSpec::Puppet::MatcherHelpers.get_matcher_for(
-      method,
+      apply_method,
       args,
       calls
     )
-    it { is_expected.to matcher }
+
+    if positive_test
+      it { is_expected.to matcher }
+    else
+      it { is_expected.not_to matcher }
+    end
   end
 end
 
@@ -361,10 +376,58 @@ end
 #        release:
 #          major: 7
 #          minor: 1
+#    params:
+#      require:
+#        '%{call("ref")}':
+#          - Package
+#          - my-package
 def __apply_rspec_puppet_lets(lets = {})
-  lets.each { |k,v|
-    let(k.to_sym) { v }
-  }
+  __expand_data_commands(lets).each { |k,v| let(k.to_sym) { v } }
+end
+
+# Recursively expands specially-formatted commands with or without arguments to
+# them found within serialized data.
+#
+# @param serialized_data [Any] The data to check for expansion markers and
+#  expand them, when present.
+# @return [Any] Expanded or original (when there are no expansion markers) data.
+def __expand_data_commands(serialized_data)
+  return nil if serialized_data.nil?
+  if serialized_data.kind_of?(Array)
+    expanded_data = []
+    serialized_data.each { |let| expanded_data << __expand_data_commands(let) }
+  elsif serialized_data.is_a?(Hash)
+    expanded_data = {}
+    serialized_data.each do |k,v|
+      # Peek ahead to identify whether this is an expansion request and whether
+      # the expansion requires arguments.
+      if v.is_a?(Hash) \
+        && 1 == v.keys.length \
+        && v.keys[0] =~ /^%{([a-z]+)\(['"]?([a-z][A-Za-z0-9_]*)["']?\)}$/ \
+      then
+        mechanism = $1
+        target    = $2.to_sym
+        args      = v.values[0]
+
+        case mechanism
+        when /^(call|send|function|fn)$/
+          if args.nil?
+            value = Object.send(target)
+          elsif args.kind_of?(Array)
+            value = Object.send(target, *args)
+          else args.is_a?(Hash)
+            value = Object.send(target, args)
+          end
+        end
+        expanded_data[k] = value
+      else
+        expanded_data[k] = __expand_data_commands(v)
+      end
+    end
+  else
+    expanded_data = serialized_data
+  end
+  expanded_data
 end
 
 # Generates all specified RSpec entities.  This is assumed to be run within a
