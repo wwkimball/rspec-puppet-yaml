@@ -5,14 +5,6 @@
 def parse_rspec_puppet_yaml(yaml_file)
   test_data = __load_rspec_puppet_yaml_data(yaml_file)
 
-  # Apply any top-level lets
-  __apply_rspec_puppet_lets(
-    RSpec::Puppet::Yaml::DataHelpers.get_named_hash(
-      'let',
-      test_data
-    )
-  )
-
   # The top-most entity must be a 'describe', which must have both name (which
   # must be identical to the entity-under-test) and type-of-entity (in case the
   # user failed to follow the prescribed directory structure for unit testing
@@ -354,7 +346,7 @@ end
 # @param subject [Any] The subject descriptor.
 def __apply_rspec_puppet_subject(subject)
   if !subject.nil?
-    subject { subject }
+    subject { __expand_data_commands(subject) }
   end
 end
 
@@ -377,10 +369,9 @@ end
 #          major: 7
 #          minor: 1
 #    params:
-#      require:
-#        '%{call("ref")}':
-#          - Package
-#          - my-package
+#      require: '%{eval:ref("Package", "my-package")}'
+#      nodes:
+#        '%{eval:ref("Node", "dbnode")}': '%{eval:ref("Myapp::Mycomponent", "myapp")}'
 def __apply_rspec_puppet_lets(lets = {})
   __expand_data_commands(lets).each { |k,v| let(k.to_sym) { v } }
 end
@@ -395,37 +386,25 @@ def __expand_data_commands(serialized_data)
   return nil if serialized_data.nil?
   if serialized_data.kind_of?(Array)
     expanded_data = []
-    serialized_data.each { |let| expanded_data << __expand_data_commands(let) }
+    serialized_data.each { |elem| expanded_data << __expand_data_commands(elem) }
   elsif serialized_data.is_a?(Hash)
     expanded_data = {}
     serialized_data.each do |k,v|
-      # Peek ahead to identify whether this is an expansion request and whether
-      # the expansion requires arguments.
-      if v.is_a?(Hash) \
-        && 1 == v.keys.length \
-        && v.keys[0] =~ /^%{([a-z]+)\(['"]?([a-z][A-Za-z0-9_]*)["']?\)}$/ \
-      then
-        mechanism = $1
-        target    = $2.to_sym
-        args      = v.values[0]
-
-        case mechanism
-        when /^(call|send|function|fn)$/
-          if args.nil?
-            value = Object.send(target)
-          elsif args.kind_of?(Array)
-            value = Object.send(target, *args)
-          else args.is_a?(Hash)
-            value = Object.send(target, args)
-          end
-        end
-        expanded_data[k] = value
-      else
-        expanded_data[k] = __expand_data_commands(v)
-      end
+      expanded_data[__expand_data_commands(k)] = __expand_data_commands(v)
     end
   else
-    expanded_data = serialized_data
+    test_data = serialized_data.to_s
+    if test_data =~ /^%{eval:(.+)}$/
+      test_eval = $1
+      begin
+        test_value = eval test_eval
+      rescue Exception => ex
+        test_value = "#{ex.class}:  #{test_eval}.  #{ex.message}"
+      end
+    else
+      test_value = serialized_data
+    end
+    expanded_data = test_value
   end
   expanded_data
 end
