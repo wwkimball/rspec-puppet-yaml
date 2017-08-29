@@ -1,6 +1,9 @@
 # rspec-puppet-yaml
 
-This gem enables Puppet module authors to write RSpec unit tests as YAML instead of Ruby (omitting the single, trivial line of code necessary to pass your YAML to RSpec).  If you're more comfortable with YAML than Ruby, or are looking for a way to automate RSpec test generation and find YAML easier to serialize into than RSpec, then you'll want this gem.
+This gem enables Puppet module authors to write RSpec unit tests as YAML instead
+of Ruby (omitting the single, trivial line of code necessary to pass your YAML
+to RSpec).  If you're more comfortable with YAML than Ruby, then you'll want
+this gem.
 
 ## Installation
 
@@ -20,7 +23,12 @@ Or install it yourself as:
 
 ## Usage
 
-As per the [existing documentation for rspec-puppet](https://github.com/rodjek/rspec-puppet/blob/master/README.md#naming-conventions), you will still create RSpec entry-point files at `your_module/spec/**/*_spec.rb` (else `rake` won't find your tests, YAML or otherwise).  However, these files now need only two lines of Ruby code (usually) and no RSpec code.  You'll still require your `spec_helper` as always, and then just call the global-scope entry-point function to parse your YAML into RSpec.
+As per the [existing documentation for rspec-puppet](https://github.com/rodjek/rspec-puppet/blob/master/README.md#naming-conventions),
+you will still create RSpec entry-point files at `your_module/spec/**/*_spec.rb`
+(else `rake` won't find your tests, YAML or otherwise).  However, these files
+now need only two lines of Ruby code (usually) and no RSpec code.  You'll still
+require your `spec_helper` as always, and then just call the global-scope
+entry-point function to parse your YAML into RSpec.
 
 For example:
 
@@ -29,17 +37,71 @@ require 'spec_helper'
 parse_yaml_from_spec(__FILE__)
 ```
 
-Yes, that's it!  You can copy-paste those two lines into every `*_spec.rb` file and then spend your time writing RSpec Puppet tests in YAML rather than Ruby.
+Yes, that's it!  You can copy-paste those two lines into every `*_spec.rb` file
+and then spend your time writing RSpec Puppet tests in YAML rather than Ruby.
 
-To do so, create another file with the same base name as your `*_spec.rb` file except change the extension to `.yaml` or `.yml`.  In fact, you don't even need the `_spec` part of the name, so for an RSpec file named `my_module_spec.rb`, you can use any of these YAML file-names:  `my_module_spec.yaml`, `my_module_spec.yml`, `my_module.yaml`, and `my_module.yml`.  Fair warning:  the parser will look for *all* of these file-names, so if you create more than one of them, they will all be processed, in turn.
+To do so, create another file with the same base name as your `*_spec.rb` file
+except change the extension to `.yaml` or `.yml`.  In fact, you don't even need
+the `_spec` part of the name, so for an RSpec file named `my_module_spec.rb`,
+you can use any of these YAML file-names:  `my_module_spec.yaml`,
+`my_module_spec.yml`, `my_module.yaml`, and `my_module.yml`.  Fair warning:  the
+parser will look for *all* of these file-names, so if you create more than one
+of them, they will all be processed, in turn.
 
 ### Defining RSpec Puppet YAML Tests
 
-While this gem spares you from needing to learn Ruby just to test your Puppet module, you still need to do a little research into what RSpec tests are available to your YAML.  The good news is [that very knowledge is already documented for the rspec-puppet gem](https://github.com/rodjek/rspec-puppet/blob/master/README.md#matchers) and you just need to know how to translate it into YAML.  While not initially obvious, it is easy.  Users should "get the hang of it" after building their first few tests.
+While this gem spares you from needing to learn Ruby just to test your Puppet
+module, you still need to do a little research into what RSpec tests are
+available to your YAML.  The good news is [that very knowledge is already
+documented for the rspec-puppet gem](https://github.com/rodjek/rspec-puppet/blob/master/README.md#matchers)
+and you just need to know how to translate it into YAML.  While not initially
+obvious, it is easy.  Users should "get the hang of it" after building their
+first few tests.
 
-These examples are expanded or direct translations of each of the matcher samples that are shown in the above-linked rspec-puppet README.  Copyright for the original examples is owned by the maintainers of that gem and are duplicated here in good faith that my translations into YAML will benefit our common audience.  This rpsec-puppet-yaml gem extends the reach of the rspec-puppet gem to include users who speak YAML better than Ruby; it does not replace it.
+These examples are expanded or direct translations of each of the matcher
+samples that are shown in the above-linked rspec-puppet README.  Copyright for
+the original examples is owned by the maintainers of that gem and are duplicated
+here in good faith that my translations into YAML will benefit our common
+audience.  This rpsec-puppet-yaml gem extends the reach of the rspec-puppet gem
+to include users who speak YAML better than Ruby; it does not replace it.
 
-**NOTE**:  The top-most entity of every test must be a `describe`.  Each `describe` must have a `'name'` or `:name` attribute.  The top-most `describe` must additionally have a `'class'` or `:class` attribute unless you arrange your `*_spec.rb` files according to the recommended rspec-puppet directory structure (in which case the class will be derived from its file-system location).
+All following examples will be presented both in the original Ruby and in the
+new YAML for comparison.  In the most general terms, you can express an existing
+RSpec entity in YAML simply by transcribing its name as a Hash key and its
+attributes or contents as its children.  Just know that I decided to use `tests`
+instead of `it` to identify the RSpec examples and I abstracted `is_expected.to`
+and `is_expected.not_to` rather than exposing them directly to YAML.  This was
+both an aesthetic decision and to reduce complexity.
+
+For the most general-case example, this Ruby:
+
+```ruby
+describe 'my_class', :type => 'class' {
+  let(:params) { my_attribute => 'value' }
+
+  it { is_expected.to some_matcher.with_attribute('value') }
+}
+```
+
+becomes this YAML:
+
+```yaml
+describe:
+  name: my_class
+  type: class
+  let:
+    params:
+      my_attribute: value
+  tests:
+    some_matcher:
+      with_attribute: value
+```
+
+**NOTE**:  The top-most entity of every YAML file must be a `describe`.  Each
+`describe` must have a `name` attribute.  The top-most `describe` must
+additionally have a `type` attribute unless you arrange your `*_spec.rb` files
+according to the recommended rspec-puppet directory structure (in which case the
+class will be derived from its file-system location).
 
 #### Setting custom facts, parameters, titles, and any other `let` setting
 
@@ -469,7 +531,10 @@ describe 'my_function' {
 
 YAML:
 
-YAML indirectly supports executable code in RSpec's `before` and `after` blocks.  It is emulated by first writing a *global* scope function in your `*_spec.rb` file and then calling that function from the YAML file, as shown in these two snippets:
+YAML indirectly supports executable code in RSpec's `before` and `after` blocks.
+It is emulated by first writing a *global* scope function in your `*_spec.rb`
+file and then calling that function from the YAML file, as shown in these two
+snippets:
 
 spec/function/my_function_spec.rb
 ```ruby
@@ -503,22 +568,52 @@ This technique also helps define custom functions for your tests.
 
 #### Hiera integration
 
-Apart from ensuring that your `metadata.json` file is valid, you just don't need to do anything at all to enable module-level Hiera data integration; it's already built into rspec-puppet and it runs quite well without any additional configuration.  If however, you have a valid use-case for customizing Hiera in order to test out-of-module data -- which should be a really hard sell since you should be testing your Module's code, not any out-of-module Hiera data -- the above documentation should be adequate to express such custom Hiera configuration, whether via `let` settings or custom functions run during `begin`.  Should you find the existing support to be inadequate, feel free to open a qualifying Pull Request that adds whatever additional support you need.
+Apart from ensuring that your `metadata.json` file is valid, you just don't need
+to do anything at all to enable module-level Hiera data integration; it's
+already built into rspec-puppet and it runs quite well without any additional
+configuration.  If however, you have a valid use-case for customizing Hiera in
+order to test out-of-module data -- which should be a really hard sell since you
+should be testing your Module's code, not any out-of-module Hiera data -- the
+above documentation should be adequate to express such custom Hiera
+configuration, whether via `let` settings or custom functions run during
+`begin`.  Should you find the existing support to be inadequate, feel free to
+open a qualifying Pull Request that adds whatever additional support you need.
 
 #### Unsupported RSpec Puppet Features
 
 This extension does not support the following features found in rspec-puppet:
 
-1. There is no way to create an example `it` that uses the `expect()` function instead of `is_expected`.
-2. With the highest available version of rspec-puppet at the time of this writing, there doesn't seem to be any way to use `subject { exported_resources }` because rspec-puppet throws an error message when you try, even when you follow its advice as to where to place the `subject`.
-3. In the Function matcher, lambda are not known to be supported via YAML.  So, the rspec-puppet example showing `run.with_lambda` has no obvious equivalent in rspec-puppet-yaml.  A clever application of the `%{eval:...}` expander might help in some cases, but feel free to experiment and share back if you find a way to make this work.
+1. There is no way to create an example `it` that uses the `expect()` function
+   instead of `is_expected`.
+2. With the highest available version of rspec-puppet at the time of this
+   writing, there doesn't seem to be any way to use
+   `subject { exported_resources }` because rspec-puppet throws an error message
+   when you try, even when you follow its advice as to where to place the
+   `subject`.
+3. In the Function matcher, lambda are not known to be supported via YAML.  So,
+   the rspec-puppet example showing `run.with_lambda` has no obvious equivalent
+   in rspec-puppet-yaml.  A clever application of the `%{eval:...}` expander
+   might help in some cases, but feel free to experiment and share back if you
+   find a way to make this work.
 
 #### Variants
 
 This gem adds a new feature that isn't present in the gem it extends:
-`variants`.  A variant in unit testing is a named repeat of its parent with certain inputs and expectations tweaked.  For example, imagine you have 10 base test examples and you want to test the limits of one input while simultaneously ensuring there are no unintended side-effects (so, you want to re-run the other 9 tests for each iteration of changes to the input-under-test).  Without variants, you'd have to duplicate those other 9 test examples over and over.  Variants eliminate all that dupliation in your test definitions, handling the repeating configuration for you.
+`variants`.  A variant in unit testing is a named repeat of its parent with
+certain inputs and expectations tweaked.  For example, imagine you have 10 base
+test examples and you want to test the limits of one input while simultaneously
+ensuring there are no unintended side-effects (so, you want to re-run the other
+9 tests for each iteration of changes to the input-under-test).  Without
+variants, you'd have to duplicate those other 9 test examples over and over.
+Variants eliminate all that dupliation in your test definitions, handling the
+repeating configuration for you.
 
-Here's an example of a classic `package.pp` that enables customization of the single package's `ensure` attribute.  The parent context defines two matcher tests, `have_package_resource_count` and `contain_package`.  Each variant inherits both, then tweaks one aspect or another of the parent examples.  Further, a separate context, `package.pp negative tests` does not inherit any tests from the `package.pp` context; they are peers rather than dependents.
+Here's an example of a classic `package.pp` that enables customization of the
+single package's `ensure` attribute.  The parent context defines two matcher
+tests, `have_package_resource_count` and `contain_package`.  Each variant
+inherits both, then tweaks one aspect or another of the parent examples.
+Further, a separate context, `package.pp negative tests` does not inherit any
+tests from the `package.pp` context; they are peers rather than dependents.
 
 ```yaml
 describe:
@@ -557,22 +652,75 @@ describe:
 
 ```
 
-Note that `variants` inherit everything from their parent `describe` or `context` except the following attributes:
+Note that `variants` inherit everything from their parent `describe` or
+`context` except the following attributes:
 
 * variants
 * before
 * after
 * subject
 
+### Style Choices
+
+Many of the elements can be expressed in multiple ways to achieve the same
+effect.  For example, containers like `describe`, `context`, and `variants` can
+be listed as more-than-one using either of these forms:
+
+```yaml
+# As implicity named Hash entities
+describe:
+  name: my_entity
+  context:
+    'context 1 name':
+      attributes...
+    'context 2 name':
+      attributes...
+
+# As explicitly named Hash entities
+describe:
+  name: my_entity
+  context:
+    - name: context 1 name
+      attributes...
+    - name: context 2 name
+      attributes...
+```
+
+Keys can also be expressed as symbols, strings, or any combination of them:
+
+```yaml
+# Keys as strings
+describe:
+  name: my_entity
+  context:
+    - name: context name
+      attribute: value
+
+# Keys as symbols
+:describe:
+  :name: my_entity
+  :context:
+    - :name: context name
+      :attribute: value
+```
+
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+After checking out the repo, run `bin/setup` to install dependencies. Then, run
+`rake spec` to run the tests. You can also run `bin/console` for an interactive
+prompt that will allow you to experiment.
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+To install this gem onto your local machine, run `bundle exec rake install`. To
+release a new version, update the version number in `version.rb`, and then run
+`bundle exec rake release`, which will create a git tag for the version, push
+git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/wwkimball/rspec-puppet-yaml. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/wwkimball/rspec-puppet-yaml.
+This project is intended to be a safe, welcoming space for collaboration, and
+contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org)
+code of conduct.
 
 ## License
 
@@ -580,4 +728,6 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 ## Code of Conduct
 
-Everyone interacting in the rspec-puppet-yaml project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/wwkimball/rspec-puppet-yaml/blob/master/CODE_OF_CONDUCT.md).
+Everyone interacting in the rspec-puppet-yaml project’s codebases, issue
+trackers, chat rooms and mailing lists is expected to follow the
+[code of conduct](https://github.com/wwkimball/rspec-puppet-yaml/blob/master/CODE_OF_CONDUCT.md).
