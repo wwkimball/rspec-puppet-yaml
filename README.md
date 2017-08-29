@@ -551,15 +551,14 @@ spec/function/my_function_spec.yaml
 ```yaml
 describe:
   name: my_function
-  let:
-    before: my_before
+  before: my_before
   tests:
     run:
       with_params: ...
       and_return: ...
 ```
 
-Note that `let:before:` can specify an Array of global-scope functions to call,
+Note that `before:` can specify an Array of global-scope functions to call,
 though it may be more intuitive to just define a global-scope function which
 calls all of the other functions you need to chain together.  Or not.  It
 depends on your logic.
@@ -589,8 +588,10 @@ This extension does not support the following features found in rspec-puppet:
    writing, there doesn't seem to be any way to use
    `subject { exported_resources }` because rspec-puppet throws an error message
    when you try, even when you follow its advice as to where to place the
-   `subject`.
-3. In the Function matcher, lambda are not known to be supported via YAML.  So,
+   `subject`.  You can still add `subject` to your YAML; it's just that
+   rspec-puppet's `exported_resources` doesn't seem to be accessible from any
+   `subject` today.
+3. In the Function matcher, lambdas are not known to be supported via YAML.  So,
    the rspec-puppet example showing `run.with_lambda` has no obvious equivalent
    in rspec-puppet-yaml.  A clever application of the `%{eval:...}` expander
    might help in some cases, but feel free to experiment and share back if you
@@ -599,14 +600,14 @@ This extension does not support the following features found in rspec-puppet:
 #### Variants
 
 This gem adds a new feature that isn't present in the gem it extends:
-`variants`.  A variant in unit testing is a named repeat of its parent with
-certain inputs and expectations tweaked.  For example, imagine you have 10 base
-test examples and you want to test the limits of one input while simultaneously
-ensuring there are no unintended side-effects (so, you want to re-run the other
-9 tests for each iteration of changes to the input-under-test).  Without
-variants, you'd have to duplicate those other 9 test examples over and over.
-Variants eliminate all that dupliation in your test definitions, handling the
-repeating configuration for you.
+`variants`.  A variant in unit testing is a named repeat of its parent container
+with certain inputs and expectations tweaked.  For example, imagine you have 10
+base test examples and you want to test the limits of one input while
+simultaneously ensuring there are no unintended side-effects (so, you want to
+re-run the other 9 tests for each iteration of changes to the input-under-test).
+Without variants, you'd have to duplicate those other 9 test examples over and
+over.  Variants eliminate all that dupliation in your test definitions, handling
+the repeating configuration for you.
 
 Here's an example of a classic `package.pp` that enables customization of the
 single package's `ensure` attribute.  The parent context defines two matcher
@@ -624,7 +625,7 @@ describe:
         have_package_resource_count: 1
         contain_package:
           my-package: present
-      variants:  # These will all inherit/overwrite the parent's tests
+      variants:  # These will all inherit the parent's tests, tweaking as needed
         'uninstall':
           let:
             params:
