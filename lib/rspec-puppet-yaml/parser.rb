@@ -120,7 +120,8 @@ def __apply_rspec_puppet_variant(apply_attrs = {}, parent_data = {})
   parent_dup   = Marshal.load(Marshal.dump(parent_data))
   context_data = parent_dup.select do |k,v|
     !['variants', 'before', 'after', 'subject'].include?(k.to_s)
-  end.deep_merge!(
+  end
+  context_data.deep_merge!(
     apply_attrs,
     { :extend_existing_arrays => false,
       :merge_hash_arrays      => true,

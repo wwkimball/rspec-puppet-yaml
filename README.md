@@ -39,6 +39,8 @@ While this gem spares you from needing to learn Ruby just to test your Puppet mo
 
 These examples are expanded or direct translations of each of the matcher samples that are shown in the above-linked rspec-puppet README.  Copyright for the original examples is owned by the maintainers of that gem and are duplicated here in good faith that my translations into YAML will benefit our common audience.  This rpsec-puppet-yaml gem extends the reach of the rspec-puppet gem to include users who speak YAML better than Ruby; it does not replace it.
 
+**NOTE**:  The top-most entity of every test must be a `describe`.  Each `describe` must have a `'name'` or `:name` attribute.  The top-most `describe` must additionally have a `'class'` or `:class` attribute unless you arrange your `*_spec.rb` files according to the recommended rspec-puppet directory structure (in which case the class will be derived from its file-system location).
+
 #### Setting custom facts, parameters, titles, and any other `let` setting
 
 Ruby:
@@ -493,8 +495,9 @@ describe:
 ```
 
 Note that `let:before:` can specify an Array of global-scope functions to call,
-though it may be simpler to just define a global-scope function which calls all
-of the other functions you need to chain together.
+though it may be more intuitive to just define a global-scope function which
+calls all of the other functions you need to chain together.  Or not.  It
+depends on your logic.
 
 This technique also helps define custom functions for your tests.
 
@@ -509,6 +512,57 @@ This extension does not support the following features found in rspec-puppet:
 1. There is no way to create an example `it` that uses the `expect()` function instead of `is_expected`.
 2. With the highest available version of rspec-puppet at the time of this writing, there doesn't seem to be any way to use `subject { exported_resources }` because rspec-puppet throws an error message when you try, even when you follow its advice as to where to place the `subject`.
 3. In the Function matcher, lambda are not known to be supported via YAML.  So, the rspec-puppet example showing `run.with_lambda` has no obvious equivalent in rspec-puppet-yaml.  A clever application of the `%{eval:...}` expander might help in some cases, but feel free to experiment and share back if you find a way to make this work.
+
+#### Variants
+
+This gem adds a new feature that isn't present in the gem it extends:
+`variants`.  A variant in unit testing is a named repeat of its parent with certain inputs and expectations tweaked.  For example, imagine you have 10 base test examples and you want to test the limits of one input while simultaneously ensuring there are no unintended side-effects (so, you want to re-run the other 9 tests for each iteration of changes to the input-under-test).  Without variants, you'd have to duplicate those other 9 test examples over and over.  Variants eliminate all that dupliation in your test definitions, handling the repeating configuration for you.
+
+Here's an example of a classic `package.pp` that enables customization of the single package's `ensure` attribute.  The parent context defines two matcher tests, `have_package_resource_count` and `contain_package`.  Each variant inherits both, then tweaks one aspect or another of the parent examples.  Further, a separate context, `package.pp negative tests` does not inherit any tests from the `package.pp` context; they are peers rather than dependents.
+
+```yaml
+describe:
+  name: my-package
+  context:
+    'package.pp':
+      tests:
+        have_package_resource_count: 1
+        contain_package:
+          my-package: present
+      variants:  # These will all inherit/overwrite the parent's tests
+        'uninstall':
+          let:
+            params:
+              package_ensure: absent
+          tests:
+            contain_package:
+              my-package: absent
+        'pinned package version':
+          let:
+            params:
+              package_ensure: '1.0.0.el7'
+          tests:
+            contain_package:
+              my-package: '1.0.0.el7'
+
+    'package.pp negative tests':
+      variants:
+        'bad package_ensure':
+          let:
+            params:
+              package_ensure: 2.10
+          tests:
+            compile:
+              and_raise_error: !ruby/regexp /parameter 'package_ensure' expects a String value, got Float/
+
+```
+
+Note that `variants` inherit everything from their parent `describe` or `context` except the following attributes:
+
+* variants
+* before
+* after
+* subject
 
 ## Development
 

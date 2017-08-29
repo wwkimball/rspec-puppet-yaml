@@ -21,8 +21,8 @@ module RSpec::Puppet
     #  `method` and is loaded with `tests`.
     # @raise [NameError] when `method` is unrecognizable.
     def self.get_matcher_for(method, args, tests = {})
-      method_str = method.to_s
-      method_sym = method.to_sym
+      method_str = method.nil? ? 'nil' : method.to_s
+      method_sym = method.nil? ? :nil : method.to_sym
 
       case method_str
       when /^(contain|create)_.+$/
@@ -56,7 +56,7 @@ module RSpec::Puppet
           tests
         )
       else
-        raise NameError "Unknown matcher method:  #{method_str}.  See http://rspec-puppet.com/matchers/ for valid matchers."
+        raise NameError, "Unknown matcher method:  #{method_str}.  See http://rspec-puppet.com/matchers/ for valid matchers."
       end
 
       matcher

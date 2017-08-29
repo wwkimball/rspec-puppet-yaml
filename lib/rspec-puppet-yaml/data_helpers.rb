@@ -42,7 +42,7 @@ module RSpec::Puppet
           if hash_name.nil? || hash_name.empty?
             if 1 == hashes.keys.count
               hash_name = hashes.keys.first
-              hash = hashes[hash_name]
+              hash = hashes[hash_name] ||= {}
               coerced_hashes << hash.select {|k,v| k != :name}.merge({'name' => hash_name})
             else
               hashes.each do |hash_name, hash|
