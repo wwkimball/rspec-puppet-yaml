@@ -1,11 +1,14 @@
+.*.sw[op]
+.metadata
+.yardwarns
 /.bundle/
+/.idea/
+/.vagrant/
 /.yardoc
-/Gemfile.lock
 /_yardoc/
 /coverage/
 /doc/
 /pkg/
-/spec/reports/
 /tmp/
 
 # rspec failure tracking

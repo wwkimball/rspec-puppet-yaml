@@ -1,5 +1,5 @@
 require "bundler/setup"
-require "rspec/puppet/yaml"
+require "rspec-puppet-yaml"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
