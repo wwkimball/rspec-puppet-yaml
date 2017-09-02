@@ -4,6 +4,51 @@ module RSpec::Puppet
     # digest) forms.  This is necessitated primarily because YAML files can be
     # written with either String or Symbol keys for the same value.
     module DataHelpers
+      # Takes a Hash, checks it for a name attribute, and ensures that name
+      # is a string-named, 'name', attribute.  If the Hash has no identifyable
+      # name, an ArgumentError is raised.
+      #
+      # @param transform_hash [Hash] A Hash that may already have an explicit
+      #  name attribute in either string or symbol form, or a Hash with an
+      #  implicit name of form `{ 'implicit' => { key... => val... } }`.
+      # @return Hash The `transform_hash` with an explicit, string key 'name'
+      #  attribute.
+      # @raise ArgumentError when `transform_hash` has neither an implicit nor
+      #  explicit name.
+      def self.make_hash_name_explicit(transform_hash = {})
+        raise ArgumentError, "Cannot transform non-Hash data." unless transform_hash.is_a?(Hash)
+        transformed_hash = {}
+        hash_name        = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
+          'name',
+          transform_hash
+        )
+
+        if hash_name.nil? || hash_name.empty?
+          # Could be an implicit name when { 'implicit' => { 'key' => 'val' } }
+          if 1 == transform_hash.keys.count
+            first_value = transform_hash.values[0]
+            if !first_value.nil? && !first_value.is_a?(Hash)
+              raise ArgumentError, "Cannot transform implicitly named Hash when its value is neither nil nor a Hash."
+            else
+              hash_name        = transform_hash.keys.first
+              hash_value       = first_value ||= {}
+              transformed_hash = hash_value
+                .select {|k,v| k != :name}
+                .merge({'name' => hash_name})
+            end
+          else
+            # No explicit or implicit name
+            raise ArgumentError, "Hash has neither an explicit nor implicit name."
+          end
+        else
+          transformed_hash = transform_hash
+            .select {|k,v| k != :name}
+            .merge({'name' => hash_name})
+        end
+
+        transformed_hash
+      end
+
       # Accepts Hashes-of-Hashes -- where each key is the entry's :name and --
       # Arrays-of-Hashes -- where each Hash has a :name element -- returning
       # both forms as an Array-of-Hashes with a guaranteed 'name' element.  Any
@@ -16,45 +61,41 @@ module RSpec::Puppet
       # @raise [ArgumentError] when an element has no name or is not a Hash.
       def self.get_array_of_named_hashes(key, data = {})
         coerced_hashes = []
-        hashes = RSpec::Puppet::Yaml::DataHelpers.get_named_hash(key, data, {})
-        return coerced_hashes if hashes.empty?  # Do nothing when there is nothing to do
+        hashes         = RSpec::Puppet::Yaml::DataHelpers.get_named_value(
+          key,
+          data,
+          {}
+        )
+        return coerced_hashes if hashes.empty?
 
-        # Expected cases:
+        # Supported Cases:
         # 1. [{'this is a name' => {:key => val}}, {'this is also a name' => {:key => val}}]
         # 2. {'this is a name' => {:key => value}, 'this is also a name' => {:key => value}}
         # 3. [{:name => 'the name', :key => value}, {:name => 'another name', :key => value}]
-        # 4. {:name => 'the name, :key => value}
+        # 4. {:name => 'the name', :key => value}
         if hashes.kind_of?(Array)
           hashes.each { |hash|
-            if hash.is_a?(Hash)
-              hash_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value('name', hash)
-              if hash_name.nil?
-                raise ArgumentError, "At least one child of #{key} has no name."
-              else
-                coerced_hashes << hash.merge({'name' => hash_name})
-              end
-            else
-              raise ArgumentError, "At least one child of #{key} is not a Hash value."
-            end
+            coerced_hashes << RSpec::Puppet::Yaml::DataHelpers
+              .make_hash_name_explicit(hash)
           }
         elsif hashes.is_a?(Hash)
-          hash_name = RSpec::Puppet::Yaml::DataHelpers.get_named_value('name', hashes)
-          if hash_name.nil? || hash_name.empty?
-            if 1 == hashes.keys.count
-              hash_name = hashes.keys.first
-              hash = hashes[hash_name] ||= {}
-              coerced_hashes << hash.select {|k,v| k != :name}.merge({'name' => hash_name})
-            else
-              hashes.each do |hash_name, hash|
-                if hash.nil? || !hash.is_a?(Hash)
-                  raise ArgumentError, "#{key} Hash named #{hash_name} must have a named Hash value."
-                else
-                  coerced_hashes << hash.select {|k,v| k != :name}.merge({'name' => hash_name})
-                end
+          # Supported Case 2 requires that each Hash attribute be a named Hash
+          # when there is no explicit name attribute.
+          if hashes.has_key?('name') || hashes.has_key?(:name)
+            coerced_hashes << RSpec::Puppet::Yaml::DataHelpers
+              .make_hash_name_explicit(hashes)
+          else
+            hashes.each do |k, v|
+              if v.nil?
+                coerced_hashes << { 'name' => k }
+              elsif !v.is_a?(Hash)
+                raise ArgumentError, "#{key} indicates a Hash but at least one of its attributes is neither a Hash nor nil."
+              else
+                coerced_hashes << v
+                  .select {|m, n| m != :name}
+                  .merge({'name' => k})
               end
             end
-          else
-            coerced_hashes << hashes.select {|k,v| k != :name}.merge({'name' => hash_name})
           end
         else
           raise ArgumentError, "#{key} is for neither an Array nor a Hash value."
