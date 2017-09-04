@@ -1,6 +1,10 @@
 module RSpec::Puppet
   # A collection of static methods that simplify creating and building rodjek's
-  # RSpec::Puppet::*Matchers.
+  # RSpec::Puppet::*Matchers.  With `MatcherHelpers`, you need call only its
+  # `.get_matcher_for` function with arguments appropriate to the matcher you
+  # desire.  Otherwise, you have to know in advance which matcher you want and,
+  # at first, the relationship between method, matcher, and namespace just isn't
+  # always obvious.
   #
   # @see https://github.com/rodjek/rspec-puppet
   class MatcherHelpers

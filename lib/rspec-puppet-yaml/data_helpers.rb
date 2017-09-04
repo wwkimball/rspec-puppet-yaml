@@ -2,7 +2,8 @@ module RSpec::Puppet
   module Yaml
     # A collection of static methods that help coerce data into simpler (to
     # digest) forms.  This is necessitated primarily because YAML files can be
-    # written with either String or Symbol keys for the same value.
+    # written with either String or Symbol keys for the same value and because
+    # Hashes can be explicitly or implicitly named.
     module DataHelpers
       # Takes a Hash, checks it for a name attribute, and ensures that name
       # is a string-named, 'name', attribute.  If the Hash has no identifyable
@@ -49,12 +50,13 @@ module RSpec::Puppet
         transformed_hash
       end
 
+      # Condenses a collection of named Hashes into an Array-of-Hashes.
+      #
       # Accepts Hashes-of-Hashes -- where each key is the entry's :name and --
       # Arrays-of-Hashes -- where each Hash has a :name element -- returning
       # both forms as an Array-of-Hashes with a guaranteed 'name' element.  Any
-      # entry without a :name generates an exception.
+      # entry without a :name or 'name' generates an exception.
       #
-      # @summary Condenses a collection of named Hashes into an Array-of-Hashes.
       # @param [Enum[String,Symbol]] key The name of the collection to copy.
       # @param [Optional[Hash]] data The Hash to copy `key` from.
       # @return [Array[Hash]] Array-of-Hashes, each with a 'name' attribute.
@@ -104,13 +106,14 @@ module RSpec::Puppet
         coerced_hashes
       end
 
+      # Gets a named Hash child from a supplied Hash parent.
+      #
       # Attempts to get an immediate child Hash from a parent Hash that is
       # named according to a given key.  The key may be supplied in either
       # String or Symbol form and both are searched for.  When both forms
       # exist in the parent Hash, a shallow merge is attempted, favoring the
       # String form.
       #
-      # @summary Gets a named Hash child from a supplied Hash parent.
       # @param [Enum[String,Symbol]] key The name of the child Hash.
       # @param [Optional[Hash]] data The parent Hash.
       # @param [Optional[Hash]] default The result when `key` not found.
@@ -126,12 +129,13 @@ module RSpec::Puppet
         hash_value
       end
 
+      # Gets a named value from a Hash by its String and Symbol names.
+      #
       # Searches a Hash for a key by both its String and Symbol names.  When
       # both are found, they are merged as long as their values are both Hash
       # (shallow) or Array (unique).  An exception is raised when the values are
       # scalar or of different data types.
       #
-      # @summary Gets a named value from a Hash by its String and Symbol names.
       # @param [Enum[String,Symbol]] key The name of the child.
       # @param [Optional[Hash]] data The parent Hash.
       # @param [Optional[Hash]] default The result when `key` not found.
