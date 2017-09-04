@@ -14,7 +14,7 @@ matrix:
       bundler_args: --without system_tests
       script:
         - 'bundle exec rake spec'
-        - 'yard'
+        - 'bundle exec yard'
 branches:
   only:
     - master
