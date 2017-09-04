@@ -1,5 +1,7 @@
 # rspec-puppet-yaml
 
+[![Build Status](https://travis-ci.org/wwkimball/rspec-puppet-yaml.svg?branch=master)](https://travis-ci.org/wwkimball/rspec-puppet-yaml) [![Documentation Coverage](https://inch-ci.org/github/wwkimball/rspec-puppet-yaml.svg?branch=master)](https://inch-ci.org/github/wwkimball/rspec-puppet-yaml)
+
 This gem enables Puppet module authors to write RSpec unit tests as YAML instead
 of Ruby (omitting the single, trivial line of code necessary to pass your YAML
 to RSpec).  It also adds a new capability:  a trivial means to create test
@@ -736,6 +738,8 @@ release a new version, update the version number in `version.rb`, and then run
 `bundle exec rake release`, which will create a git tag for the version, push
 git commits and tags, and push the `.gem` file to
 [rubygems.org](https://rubygems.org).
+
+[API documentation](https://wwkimball.github.io/rspec-puppet-yaml/docs/index.html) is available at github.io.
 
 ## Contributing
 
