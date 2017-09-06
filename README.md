@@ -1,6 +1,7 @@
 # rspec-puppet-yaml
 
-[![Build Status](https://travis-ci.org/wwkimball/rspec-puppet-yaml.svg?branch=master)](https://travis-ci.org/wwkimball/rspec-puppet-yaml) [![Documentation Coverage](https://inch-ci.org/github/wwkimball/rspec-puppet-yaml.svg?branch=master)](https://inch-ci.org/github/wwkimball/rspec-puppet-yaml)
+[![Build Status](https://travis-ci.org/wwkimball/rspec-puppet-yaml.svg?branch=master)](https://travis-ci.org/wwkimball/rspec-puppet-yaml)
+[![Documentation Coverage](https://inch-ci.org/github/wwkimball/rspec-puppet-yaml.svg?branch=master)](https://inch-ci.org/github/wwkimball/rspec-puppet-yaml)
 
 This gem enables Puppet module authors to write RSpec unit tests as YAML instead
 of Ruby (omitting the single, trivial line of code necessary to pass your YAML
@@ -315,6 +316,14 @@ describe "my_module" {
   it { is_expected.to contain_service('keystone_2').without(
     ['restart', 'status']
   )}
+
+  it { is_expected.to contain_file('/path/file').with_content(/foobar/) }
+
+  it do
+    is_expected.to contain_file('/other/path/file')
+      .with_content(/foobar/)
+      .with_content(/bazbar/)
+  end
 }
 ```
 
@@ -354,6 +363,12 @@ describe:
     contain_file:
       /foo/bar:
         - without_mode
+      /path/file:
+        with_content: !ruby/regexp /foobar/
+      /other/path/file:
+        with_content:
+          - !ruby/regexp /foobar/
+          - !ruby/regexp /bazbar/
 ```
 
 ##### With stipulated resource relationships
