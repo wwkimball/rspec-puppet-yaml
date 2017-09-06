@@ -1,0 +1,16 @@
+.*.sw[op]
+.metadata
+.yardwarns
+/.bundle/
+/.idea/
+/.vagrant/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/tmp/
+/vendor/
+
+# rspec failure tracking
+.rspec_status

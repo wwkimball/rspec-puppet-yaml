@@ -1,0 +1,29 @@
+sudo: false
+language: ruby
+cache: bundler
+before_install:
+  - bundle -v
+  - gem update --system
+  - gem install bundler -v 1.15.4
+  - gem --version
+  - bundle -v
+matrix:
+  fast_finish: true
+  include:
+    - rvm: 2.4.1
+      bundler_args: --without system_tests
+      script:
+        - 'bundle exec rake spec'
+        - 'bundle exec yard'
+branches:
+  only:
+    - master
+    - /^v\d/
+notifications:
+  email: false
+deploy:
+  - provider: pages
+    skip_cleanup: true
+    github_token: $GITHUB_TOKEN
+    on:
+      branch: master
