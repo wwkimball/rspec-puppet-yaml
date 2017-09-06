@@ -5,7 +5,7 @@ module RSpec
     # Ruby.
     module Yaml
       # Version number for the rspec-puppet-yaml Ruby gem
-      VERSION = "0.1.0"
+      VERSION = "0.1.1"
     end
   end
 end

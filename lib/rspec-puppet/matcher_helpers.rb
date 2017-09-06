@@ -120,7 +120,13 @@ module RSpec::Puppet
           if v.nil? || 'nil' == v.to_s
             matcher.send(k.to_sym)
           else
-            matcher.send(k.to_sym, v)
+            # Enable content tests to specify arrays so that multiple discrete
+            # contents can be searched.
+            if k =~ /(with_|without_)?content/ && v.kind_of?(Array)
+              v.each{ |l| matcher.send(k.to_sym, l) }
+            else
+              matcher.send(k.to_sym, v)
+            end
           end
         end
       elsif !tests.nil?
