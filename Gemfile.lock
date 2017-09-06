@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rspec-puppet-yaml (0.1.0)
+    rspec-puppet-yaml (0.1.1)
       deep_merge (~> 1.1)
       rspec-puppet (~> 2.6)
 
