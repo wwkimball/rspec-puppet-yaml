@@ -24,7 +24,7 @@ GEM
       locale
     hiera (3.4.0)
     jgrep (1.5.0)
-    json (2.1.0)
+    json (2.3.1)
     locale (2.1.2)
     mcollective-client (2.11.2)
       json
