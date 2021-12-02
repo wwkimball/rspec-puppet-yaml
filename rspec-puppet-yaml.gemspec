@@ -35,7 +35,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", "~> 12.0"
   spec.add_development_dependency "yard", "~> 0.9"
   spec.add_development_dependency "json", "~> 2.1"
-  spec.add_development_dependency "puppet", "~> 5"
+  spec.add_development_dependency "puppet", "~> 7"
   spec.add_development_dependency "puppetlabs_spec_helper", "~> 2.3"
   spec.add_development_dependency "puppet-strings", "~> 1"
   spec.add_development_dependency "rspec-puppet-facts", "~> 1.8"
